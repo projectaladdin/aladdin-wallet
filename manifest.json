@@ -1,0 +1,44 @@
+{
+  "manifest_version": 3,
+  "name": "Aladdin Wallet",
+  "short_name": "Aladdin",
+  "version": "0.6.2",
+  "description": "General-purpose EIP-7702 wallet with scoped-permission safety — defaults to Robinhood Chain, Ethereum selectable.",
+  "author": "Aladdin Wallet",
+  "icons": {
+    "16": "icons/16.png",
+    "32": "icons/32.png",
+    "48": "icons/48.png",
+    "128": "icons/128.png"
+  },
+  "action": {
+    "default_popup": "popup.html",
+    "default_icon": "icons/32.png",
+    "default_title": "Aladdin Wallet"
+  },
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  },
+  "content_security_policy": {
+    "extension_pages": "script-src 'self'; object-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https:; connect-src 'self' https: wss: http://localhost:* http://127.0.0.1:* ws://localhost:* ws://127.0.0.1:*;"
+  },
+  "content_scripts": [
+    {
+      "matches": ["http://*/*", "https://*/*"],
+      "js": ["content.js"],
+      "run_at": "document_start",
+      "world": "ISOLATED",
+      "all_frames": false
+    },
+    {
+      "matches": ["http://*/*", "https://*/*"],
+      "js": ["inject.js"],
+      "run_at": "document_start",
+      "world": "MAIN",
+      "all_frames": false
+    }
+  ],
+  "permissions": ["storage", "alarms"],
+  "host_permissions": ["<all_urls>"]
+}

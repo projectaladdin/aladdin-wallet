@@ -1,0 +1,3128 @@
+/* =========================================================================
+   Aladdin (extension popup subset). Shared design tokens + component
+   classes for the 360 px popup body. Sizes/paddings are tightened for
+   the popup viewport but the typographic identity (case, weight, family)
+   stays canonical — Press Start 2P for display headings, Silkscreen for
+   captions/body, JetBrains Mono for addresses/hashes.
+
+   Component classes (`.aw-btn` / `.aw-card` / `.aw-input` / `.aw-label`
+   / `.aw-mono` / `.aw-card-title` / `.aw-alert*` / etc) compose from
+   the brand tokens declared below.
+   ========================================================================= */
+
+:root {
+  /* Aladdin dark theme — deep purple/indigo surfaces, gold + purple + teal
+     accents. Neobrutalist black borders + hard black drop-shadows retained.
+     Variable NAMES are kept identical so every downstream reference updates
+     automatically; only their values changed from the old cream theme. */
+  --aw-gold:  #FFC53D;   /* gold */
+  --alarm-red:    #FF5470;
+  --chunky-green: #33E06A;
+  --cream:        #141033;   /* now the primary DARK panel/surface color */
+  --white:        #F4F1FF;   /* now light text (name kept) */
+  --ink:          #000000;   /* UNCHANGED — borders + shadows */
+
+  --bg:           #0C0A1E;   /* page background (dark) */
+  --fg:           var(--white);
+  --border-width: 3px;
+  --border-rule:  var(--border-width) solid var(--ink);
+
+  --shadow:       4px 4px 0 var(--ink);
+  --shadow-sm:    2px 2px 0 var(--ink);
+
+  /* Aladdin helper tokens */
+  --purple:       #B26CFF;
+  --teal:         #33E0D0;
+  --gold:         #FFC53D;
+  --on-gold:      #160E00;
+  --gold-shadow:  #9A6E12;
+  --panel:        #141033;
+  --panel-2:      #1A1248;
+  --panel-row:    #161138;
+  --tile:         #1B1450;
+  --secondary:    #241C55;
+  --input-bg:     #120E30;
+  --border-purple:#574899;
+  --border-dim:   #382E72;
+  --text:         #E8E3FA;
+  --text-dim:     #CFC7EC;
+  --muted:        #9A8FD6;
+
+  --font-display: 'Press Start 2P', monospace;
+  --font-pixel:    'Silkscreen', monospace;
+  --font-body:    'Silkscreen', 'JetBrains Mono', ui-monospace, monospace;
+  --font-mono:    'JetBrains Mono', ui-monospace, monospace;
+}
+
+* { box-sizing: border-box; }
+
+/* Universal: hide every scrollbar in the popup so nothing breaks the
+   neobrutalist look. wheel / trackpad / arrow-key scroll still works. */
+*           { scrollbar-width: none; }
+*::-webkit-scrollbar { width: 0; height: 0; display: none; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--font-body);
+  font-size: 14px;
+  line-height: 1.45;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+body {
+  /* Cream paper with two offset radial dot grids — same texture as the
+     design's `.phone` interior. No outer frame; popup IS the phone. */
+  background-color: var(--bg);
+  background-image:
+    radial-gradient(rgba(255, 255, 255, 0.04) 1px, transparent 1px),
+    radial-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+  background-size: 22px 22px, 14px 14px;
+  background-position: 0 0, 8px 8px;
+  width: 360px;
+  height: 600px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-width: none;
+}
+body::-webkit-scrollbar { display: none; }
+
+::selection { background: var(--gold); color: var(--on-gold); }
+
+#root {
+  /* 360 × 600 canvas. Tightened paddings/gaps so dense screens (connect
+     approval, sign confirm) fit without scroll. position:relative anchors
+     the floating conn-strip; flex-column lets footer controls margin-auto. */
+  position: relative;
+  min-height: 100%;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* ───── Display + pixel typography ────────────────────────────────────── */
+
+
+.aw-caption {
+  font-family: var(--font-pixel);
+  font-weight: 700;
+}
+
+.aw-mono {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--teal);
+}
+
+/* ───── Header ─────────────────────────────────────────────────────────
+   Sticky-pinned to the popup's top edge. Negative left/right/top margins
+   extend the header to body edges (cancelling #root's padding) so when it
+   sticks the cream bg + ink border-bottom span the full width. */
+
+.aw-header {
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  display: flex;
+  flex-direction: column;
+  background-color: var(--bg);
+  border-bottom: 1px solid var(--border-dim);
+  margin: -14px -14px 0;
+  padding: 10px 14px 4px;
+}
+/* Inner row that holds back-button / brand-icon / sticker / chain pill / ⚙
+   — all the original Header chrome. Kept as its own flex row so the optional
+   caption below sits on a clean second line inside the Header bounding box. */
+.aw-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+
+/* Header brand icon — the design's `.logo-tile`: 40×40 yellow square,
+   3px ink border, 2px shadow, **tilted −4°** for the tilted stamp feel. */
+.aw-brand-icon {
+  display: block;
+  background: transparent;
+  image-rendering: pixelated;
+  transform: rotate(-4deg);
+  flex-shrink: 0;
+}
+
+
+/* ───── Header chain picker (top-right network switcher) ─────────────────
+   Custom dropdown — native <select> is opted out because its menu uses OS
+   styling and breaks the neobrutalist design language. */
+
+.aw-chain-picker {
+  position: relative;
+  display: inline-block;
+}
+
+.aw-chain-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-family: var(--font-mono);
+  font-weight: 600;
+  font-size: 12px;
+  padding: 4px 8px 4px 10px;
+  background: var(--secondary);
+  border: var(--border-width) solid var(--border-purple);
+  box-shadow: var(--shadow-sm);
+  cursor: pointer;
+  color: var(--text);
+  max-width: 160px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition: transform 80ms, box-shadow 80ms;
+}
+
+.aw-chain-pill:hover  { transform: translate(1px, 1px); box-shadow: 1px 1px 0 var(--ink); }
+.aw-chain-pill:active { transform: translate(2px, 2px); box-shadow: none; }
+
+.aw-chain-pill::after {
+  content: '▾';
+  font-size: 10px;
+  margin-left: 4px;
+  opacity: 0.6;
+}
+
+.aw-chain-pill.is-open::after {
+  content: '▴';
+}
+
+.aw-chain-dot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--chunky-green);
+  margin-right: 4px;
+  border: 1px solid var(--ink);
+}
+
+.aw-chain-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  min-width: 200px;
+  max-height: 280px;
+  overflow-y: auto;
+  background: var(--panel-2);
+  border: var(--border-width) solid var(--border-purple);
+  box-shadow: var(--shadow);
+  z-index: 100;
+  /* Hide the OS scrollbar — macOS overlay bars and Windows track bars both
+     break the neobrutalist look. Wheel/trackpad scroll still works. */
+  scrollbar-width: none;
+}
+.aw-chain-menu::-webkit-scrollbar { display: none; }
+
+.aw-chain-option {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 12px;
+  background: var(--panel-2);
+  border: 0;
+  border-bottom: 2px solid var(--border-dim);
+  cursor: pointer;
+  font-family: var(--font-body);
+  font-weight: 700;
+  font-size: 13px;
+  text-align: left;
+  color: var(--text);
+}
+.aw-chain-option:last-child  { border-bottom: 0; }
+.aw-chain-option:hover       { background: var(--tile); }
+.aw-chain-option.is-current  { background: var(--aw-gold); color: var(--on-gold); }
+.aw-chain-option.is-current::after { content: '✓'; margin-left: 6px; }
+
+.aw-chain-option-id {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 600;
+  opacity: 0.55;
+  margin-left: 10px;
+}
+
+/* ───── Account picker (dashboard inline dropdown) ───────────────────── */
+
+
+
+
+
+
+
+
+/* ───── Stickers (status pills) ──────────────────────────────────────── */
+
+.aw-sticker {
+  display: inline-block;
+  font-family: var(--font-display);
+  text-transform: uppercase;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  padding: 4px 10px;
+  border: var(--border-rule);
+  box-shadow: var(--shadow-sm);
+  background: var(--secondary);
+}
+.aw-sticker-red    { background: var(--alarm-red);    color: var(--white);    transform: rotate(3deg);  }
+.aw-sticker-green  { background: var(--chunky-green); color: #062814;         transform: rotate(-2deg); }
+.aw-sticker-yellow { background: var(--aw-gold);  color: var(--on-gold);  transform: rotate(2deg);  }
+
+/* ───── Cards ────────────────────────────────────────────────────────── */
+
+.aw-card {
+  background: var(--panel);
+  border: var(--border-width) solid var(--border-purple);
+  box-shadow: var(--shadow);
+  padding: 14px;
+  /* Spacing comes from #root's flex `gap: 12px`. No card margin so two
+     adjacent cards stack cleanly without double spacing. */
+}
+
+/* ───── Unlock screen ────────────────────────────────────────────────────
+   "the design" lock-screen aesthetic — tilted black sticker holding the
+   lock emoji, big LOCKED display headline, password row with eye toggle,
+   yellow chunky CTA. No Header on this screen so the lock-card is the
+   first thing the user sees on a fresh popup open. */
+.aw-unlock {
+  display: flex; flex-direction: column; align-items: center;
+  gap: 10px;
+  padding-top: 12px;
+}
+.aw-unlock-sticker {
+  width: 76px; height: 76px;
+  background: var(--ink);
+  border: var(--border-rule);
+  box-shadow: var(--shadow);
+  display: flex; align-items: center; justify-content: center;
+  transform: rotate(-4deg);
+  margin-bottom: 4px;
+  font-size: 38px; line-height: 1;
+}
+.aw-unlock-title {
+  margin: 6px 0 0;
+  font-family: var(--font-display); font-weight: 400;
+  font-size: 16px; line-height: 1.3;
+  letter-spacing: 0;
+  /* White fill + ink stroke = the "outlined" treatment used by the
+     dashboard hero (`.aw-approve-display .big`). paint-order: stroke fill so
+     the stroke sits behind the fill instead of clipping each glyph. */
+  color: var(--white);
+  -webkit-text-stroke: 2px var(--ink);
+  paint-order: stroke fill;
+  text-transform: uppercase;
+  text-align: center;
+}
+.aw-unlock-sub {
+  margin: 0 0 6px;
+  font-family: var(--font-pixel); font-weight: 700; font-size: 12px;
+  color: var(--text); opacity: 0.7;
+  text-align: center;
+}
+.aw-unlock-input {
+  width: 100%;
+  display: flex; align-items: stretch;
+  background: var(--input-bg);
+  border: var(--border-rule);
+  box-shadow: var(--shadow);
+}
+.aw-unlock-input input {
+  flex: 1; min-width: 0;
+  padding: 14px 14px 14px 16px;
+  border: 0; outline: 0;
+  background: transparent;
+  font-family: var(--font-mono); font-weight: 700;
+  font-size: 18px; letter-spacing: 0.16em;
+  color: var(--text);
+}
+.aw-unlock-input input::placeholder { letter-spacing: 0.04em; opacity: 0.4; color: var(--muted); }
+/* Hide browser-native password reveal controls (Edge / Chrome on Windows
+   render an extra eye button that doubles up with ours). Safari / Chrome
+   on macOS don't render one, so this is a no-op there. */
+.aw-unlock-input input::-ms-reveal,
+.aw-unlock-input input::-ms-clear { display: none; }
+.aw-unlock-input input::-webkit-credentials-auto-fill-button { display: none !important; }
+.aw-unlock-input .eye {
+  flex-shrink: 0;
+  width: 44px;
+  background: transparent;
+  border: 0;
+  font-size: 16px; line-height: 1;
+  cursor: pointer;
+  color: var(--text);
+}
+.aw-unlock-input .eye:hover { background: var(--cream); }
+.aw-unlock-btn {
+  width: 100%;
+  padding: 14px;
+  background: var(--aw-gold);
+  border: var(--border-rule);
+  box-shadow: var(--shadow);
+  font-family: var(--font-display); font-weight: 400;
+  font-size: 14px; letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--on-gold);
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+}
+.aw-unlock-btn:hover:not(:disabled) {
+  transform: translate(-1px, -1px);
+  box-shadow: 6px 6px 0 var(--ink);
+}
+.aw-unlock-btn:active:not(:disabled) {
+  transform: translate(2px, 2px);
+  box-shadow: 1px 1px 0 var(--ink);
+}
+.aw-unlock-btn:disabled { opacity: 0.55; cursor: not-allowed; }
+
+/* Card title — body 800, lowercase, hairline rule under. The
+   "heading of a block" typographic role: small, bold, set apart by
+   the rule and the case, not by a heavy font. */
+.aw-card-title {
+  font-family: var(--font-body);
+  font-weight: 800;
+  font-size: 14px;
+  text-transform: lowercase;
+  letter-spacing: -0.005em;
+  margin: 0 0 10px;
+  color: var(--text);
+  border-bottom: 2px solid var(--ink);
+  padding-bottom: 6px;
+}
+
+/* ───── Key/value list ───────────────────────────────────────────────── */
+
+
+/* ───── Buttons ──────────────────────────────────────────────────────── */
+
+/* Buttons — same family/case/weight as frontend aw-btn, only the size is
+   tightened for the 360px popup. Visual language stays in lockstep. */
+.aw-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-body);
+  font-weight: 800;
+  font-size: 14px;
+  text-transform: lowercase;
+  padding: 12px 18px;
+  border: var(--border-rule);
+  background: var(--aw-gold);
+  color: var(--on-gold);
+  box-shadow: var(--shadow);
+  cursor: pointer;
+  user-select: none;
+  border-radius: 0;
+  transition: transform 100ms, box-shadow 100ms;
+}
+.aw-btn:hover  { transform: translate(2px, 2px); box-shadow: var(--shadow-sm); }
+.aw-btn:active { transform: translate(4px, 4px); box-shadow: none; }
+.aw-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: var(--shadow);
+}
+
+.aw-btn-ghost  { background: var(--secondary); color: var(--text); border: var(--border-width) solid var(--border-purple); }
+.aw-btn-danger { background: var(--alarm-red); color: var(--white); }
+.aw-btn-block  { width: 100%; }
+.aw-btn-sm     { padding: 8px 12px; font-size: 12px; }
+
+.aw-btn-row {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+/* ───── Inputs ───────────────────────────────────────────────────────── */
+
+/* Input — same mono 600 family/weight as frontend, only width:100% & smaller
+   font-size to fit the popup form layout. */
+.aw-input {
+  width: 100%;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  font-weight: 600;
+  padding: 10px 12px;
+  border: var(--border-width) solid var(--border-purple);
+  background: var(--input-bg);
+  color: var(--text);
+  box-shadow: var(--shadow-sm);
+  outline: none;
+}
+.aw-input:focus {
+  outline: 3px solid var(--aw-gold);
+  outline-offset: 2px;
+}
+.aw-input::placeholder { color: var(--muted); }
+.aw-label {
+  display: block;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-bottom: 6px;
+}
+
+/* ───── Inline alerts ────────────────────────────────────────────────── */
+
+/* Unified security-checks panel that lives between SignHead and
+   each mode's body. Replaces the per-body inline danger/warning
+   alerts so the whole list of risks shows up in one place. Spacing
+   matches the existing .aw-card siblings. */
+.aw-security-checks {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0 0 8px;
+}
+.aw-security-checks:empty {
+  display: none;
+}
+
+.aw-alert {
+  border: var(--border-rule);
+  padding: 10px 12px;
+  font-family: var(--font-pixel);
+  font-size: 13px;
+  font-weight: 700;
+  margin-bottom: 12px;
+  background: var(--aw-gold);
+  color: var(--on-gold);
+  box-shadow: var(--shadow-sm);
+  /* Viem error messages can be 1–2 KB (full calldata + explainer).
+     Without word-break long hex pushes the box wider than the popup;
+     without max-height + overflow the box grows past the popup
+     viewport. Cap vertical at ~6 lines and scroll inside. */
+  word-break: break-word;
+  max-height: 14em;
+  overflow-y: auto;
+}
+.aw-alert-danger { background: var(--alarm-red); color: var(--white); }
+.aw-alert-info   { background: var(--panel-2); color: var(--text); }
+
+/* ───── Mnemonic word grid (4×3 for 12 words) ────────────────────────── */
+
+.aw-mnemonic {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  margin: 8px 0 14px;
+  user-select: text;
+}
+.aw-mnemonic-cell {
+  border: 2px solid var(--ink);
+  background: var(--cream);
+  padding: 6px 8px;
+}
+.aw-mnemonic-cell::before {
+  content: attr(data-i) ".";
+  font-size: 10px;
+  opacity: 0.55;
+  margin-right: 4px;
+}
+
+/* ───── Foot text ────────────────────────────────────────────────────── */
+
+
+/* =========================================================================
+   PORTFOLIO HERO  — sourced 1:1 from the design mock
+   Yellow card, slight CCW rotation, big stroked balance, aw-stamp at the
+   top-right, ink-on-yellow address pill bottom-left, % delta bottom-right.
+   ========================================================================= */
+
+.aw-hero {
+  background-color: var(--panel-2);
+  background-image: repeating-linear-gradient(0deg, transparent 0 3px, rgba(0, 0, 0, 0.15) 3px 4px);
+  border: 3px solid var(--gold);
+  box-shadow: 0 0 0 3px #000, 6px 6px 0 #000;
+  padding: 14px 14px 12px;
+  margin: 4px 6px 14px 0;
+  position: relative;
+  transform: rotate(-0.6deg);
+  /* Bump above the action row + token list stacking contexts so the
+     rotated hero card composites cleanly OVER the "my tokens" area
+     below. transform already creates a stacking context here; z-index
+     gives it explicit priority over the document-flow siblings below. */
+  z-index: 5;
+  /* Pin to its own compositor layer so neighbouring reflow (tokens↔
+     NFTs tab switch swapping different-height bodies below) doesn't
+     re-rasterise the rotated balance text. Without this, sub-pixel
+     rasterisation of `transform: rotate(-0.6deg)` shifts by ~1 px on
+     every paint triggered by surrounding layout changes, perceived
+     as jitter on the balance number. `will-change: transform` is the
+     hint; the implicit GPU layer caches the rasterised bitmap. */
+  will-change: transform;
+}
+
+.aw-hero-eyebrow {
+  font-family: var(--font-pixel);
+  font-weight: 700;
+  font-size: 12px;
+  line-height: 1;
+  opacity: 0.8;
+}
+
+/* Big stroked balance — Press Start 2P, white fill, 2px ink stroke
+   (paint-order stroke-fill so the stroke doesn't eat the glyph). Falls
+   back to monospace gracefully if Press Start 2P isn't loaded. */
+.aw-hero-bal {
+  font-family: var(--font-display);
+  text-transform: uppercase;
+  color: var(--white);
+  -webkit-text-stroke: 2px var(--ink);
+  paint-order: stroke fill;
+  font-size: 24px;
+  line-height: 1.3;
+  letter-spacing: 0;
+  margin: 4px 0 4px;
+  /* `overflow: visible` (rather than hidden + ellipsis) keeps the
+     stroked glyphs from clipping at the card edge. Balance strings are
+     short enough that no truncation is needed in practice. */
+  white-space: nowrap;
+  overflow: visible;
+}
+.aw-hero-bal .unit  { font-size: 14px; margin-left: 2px; }
+
+/* (decorative squat + drop animation removed for the Aladdin theme) */
+
+.aw-hero-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  gap: 8px;
+}
+
+.aw-hero-addr {
+  background: var(--ink);
+  color: var(--aw-gold);
+  padding: 3px 8px;
+  border: 2px solid var(--ink);
+  cursor: pointer;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 700;
+}
+.aw-hero-addr.is-copied { background: var(--chunky-green); color: #062814; }
+
+/* Two-up action row above my-tokens (send / receive). Mirrors the demo's
+   `.quad` aesthetic: white tile + 3px ink border + 2px shadow + lowercase
+   body 800. Hover squashes the shadow + flips bg to aw-gold for the
+   "stamp pressed" feel. */
+.aw-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin: 4px 0 4px;
+}
+.aw-actions button {
+  background: var(--secondary);
+  border: var(--border-rule);
+  box-shadow: var(--shadow-sm);
+  padding: 10px 4px;
+  font-family: var(--font-body);
+  font-weight: 800;
+  font-size: 13px;
+  text-transform: lowercase;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+  border-radius: 0;
+  color: var(--text);
+  transition: transform 80ms, box-shadow 80ms, background 80ms;
+}
+.aw-actions button:hover {
+  transform: translate(2px, 2px);
+  box-shadow: none;
+  background: var(--aw-gold);
+  color: var(--on-gold);
+}
+.aw-actions .ico { font-size: 18px; line-height: 1; }
+
+.aw-hero-stamp {
+  position: absolute;
+  top: -10px;
+  right: 8px;
+  background: transparent;
+  color: var(--muted);
+  border: var(--border-rule);
+  box-shadow: var(--shadow-sm);
+  font-family: var(--font-display);
+  font-size: 13px;
+  line-height: 1;
+  padding: 5px 8px 4px;
+  transform: rotate(6deg);
+  z-index: 2;
+  text-transform: uppercase;
+}
+
+/* =========================================================================
+   TOKENS LIST  — the design's `.tlist` and `.trow`
+   Each row: 36px icon · symbol+name · balance.  We omit the sparkline and
+   USD column because we don't have price data — keeps the row honest.
+   ========================================================================= */
+
+.aw-tokens-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  padding: 0 2px 8px;
+}
+
+/* Folding-screen tab strip. Both tabs are absolutely positioned;
+   their `left` values are computed in dashboard.tsx from the runtime-
+   measured tab widths (useLayoutEffect + offsetWidth), so the active
+   tab's right edge lands inside the inactive tab by exactly
+   TAB_OVERLAP_PX (32 px). That measurement is the source of truth —
+   no hard-coded font-width guesses here.
+     - Active sits at left:0, z-index 5, white bg, full opacity.
+     - Inactive sits at left = activeWidth − 32, z-index 1, yellow
+       bg, faded opacity, slightly scaled down for depth feel.
+   Switching activeTab animates both `left` values simultaneously
+   (one slides right, the other slides left) — neither tab leaves
+   the DOM, so transitions are smooth. Background + opacity also
+   crossfade during the slide. */
+.aw-assets-tabs {
+  position: relative;
+  /* Height pinned because absolute children can't size the parent. */
+  height: 30px;
+  margin-bottom: 4px;
+}
+.aw-assets-tab {
+  position: absolute;
+  top: 0;
+  font-family: var(--font-display);
+  text-transform: uppercase;
+  font-size: 12px;
+  line-height: 1;
+  padding: 6px 12px 5px;
+  border: 2px solid var(--ink);
+  background: var(--secondary);
+  cursor: pointer;
+  color: var(--text);
+  opacity: 0.6;
+  white-space: nowrap;
+  transition:
+    left       300ms cubic-bezier(0.4, 0, 0.2, 1),
+    background 240ms ease,
+    opacity    240ms ease,
+    transform  300ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+.aw-assets-tab:hover { opacity: 1; }
+
+.aw-assets-tabs[data-active="tokens"] .aw-assets-tab[data-tab="tokens"],
+.aw-assets-tabs[data-active="nfts"]   .aw-assets-tab[data-tab="nfts"] {
+  z-index: 5;
+  background: var(--gold);
+  color: var(--on-gold);
+  opacity: 1;
+  transform: scale(1);
+}
+.aw-assets-tabs[data-active="tokens"] .aw-assets-tab[data-tab="nfts"],
+.aw-assets-tabs[data-active="nfts"]   .aw-assets-tab[data-tab="tokens"] {
+  z-index: 1;
+  transform: scale(0.96);
+  transform-origin: right center;
+}
+.aw-tokens-meta {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+/* Inline "hide 0" pill — the design demo's `.tokens-meta .toggle`.
+   Tiny mono caps button, yellow when on. Sits next to the coin count. */
+.aw-tokens-toggle {
+  background: var(--secondary);
+  border: 2px solid var(--ink);
+  padding: 2px 6px;
+  cursor: pointer;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: lowercase;
+  border-radius: 0;
+  color: var(--text);
+  transition: transform 80ms;
+}
+.aw-tokens-toggle:hover  { transform: translate(1px, 1px); }
+.aw-tokens-toggle.is-on  { background: var(--aw-gold); color: var(--on-gold); }
+
+/* Floating connection strip — pinned to the popup viewport's bottom edge.
+   `position: fixed` against the popup window means token list growth (or
+   any other content) doesn't push the strip down: it stays put while the
+   list scrolls under it. Hard 4px shadow for the "lifted" look. */
+.aw-conn-strip {
+  position: fixed;
+  left: 14px;
+  right: 14px;
+  bottom: 14px;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border: var(--border-rule);
+  box-shadow: var(--shadow);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 700;
+}
+.aw-conn-strip.is-on  { background: var(--chunky-green); color: #062814; }
+.aw-conn-strip.is-off { background: var(--secondary); opacity: 0.7; }
+.aw-conn-strip .dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--ink);
+  flex-shrink: 0;
+  border: 1px solid var(--ink);
+}
+.aw-conn-strip.is-off .dot { background: var(--muted); }
+.aw-conn-strip .host {
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-transform: lowercase;
+}
+.aw-conn-strip .disconnect {
+  background: var(--ink);
+  color: var(--aw-gold);
+  border: 2px solid var(--ink);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 6px;
+  cursor: pointer;
+  text-transform: lowercase;
+}
+
+/* =========================================================================
+   CONNECT CONFIRM — eth_requestAccounts approval screen, modeled after the
+   shared design mockup (black header strip + yellow-headed cards + red
+   "no" permission with diagonal stripes + dashed warning + nope/connect).
+   ========================================================================= */
+
+/* Black header strip */
+.aw-connect-head {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 10px;
+  background: var(--ink);
+  color: var(--aw-gold);
+  border: var(--border-rule);
+  box-shadow: var(--shadow-sm);
+}
+.aw-connect-head .ico {
+  width: 28px;
+  height: 28px;
+  background: var(--aw-gold);
+  border: 2px solid var(--ink);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 15px;
+  flex-shrink: 0;
+  color: var(--on-gold);
+  object-fit: contain;
+  /* Slight crispness boost for tiny favicons. */
+  image-rendering: -webkit-optimize-contrast;
+}
+.aw-connect-head .meta { flex: 1; min-width: 0; }
+.aw-connect-head .host {
+  font-family: var(--font-mono);
+  font-weight: 700;
+  font-size: 13px;
+  color: var(--aw-gold);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.1;
+}
+.aw-connect-head .sub {
+  font-family: var(--font-pixel);
+  font-weight: 700;
+  font-size: 11px;
+  color: var(--white);
+  opacity: 0.55;
+  margin-top: 2px;
+}
+.aw-connect-head .new {
+  background: var(--alarm-red);
+  color: var(--white);
+  border: 2px solid var(--ink);
+  font-family: var(--font-display);
+  font-size: 12px;
+  padding: 3px 7px 2px;
+  letter-spacing: 0.04em;
+  transform: rotate(8deg);
+  box-shadow: var(--shadow-sm);
+  flex-shrink: 0;
+}
+
+/* Site greeting line: "<host> says hi 👋" */
+.aw-host-greeting {
+  font-family: var(--font-pixel);
+  font-weight: 700;
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.aw-host-greeting code {
+  background: var(--cream);
+  border: 2px solid var(--ink);
+  padding: 2px 8px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+/* Account summary card — yellow icon, label + meta, black address pill */
+.aw-acct-summary {
+  display: grid;
+  grid-template-columns: 32px 1fr auto;
+  gap: 8px;
+  align-items: center;
+  background: var(--cream);
+  border: 2px solid var(--ink);
+  padding: 8px;
+}
+.aw-acct-summary .ic {
+  width: 32px;
+  height: 32px;
+  border: 2px solid var(--ink);
+  display: block;
+  /* AccountGlyph SVG fills the box; keep Aladdin yellow as a fallback for
+     glyphs that happen to roll a transparent shape. */
+  background: var(--aw-gold);
+}
+.aw-acct-summary .info { min-width: 0; }
+.aw-acct-summary .name {
+  font-family: var(--font-body);
+  font-weight: 800;
+  font-size: 14px;
+  line-height: 1.1;
+}
+.aw-acct-summary .meta {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  opacity: 0.7;
+  margin-top: 2px;
+}
+.aw-acct-summary .addr-pill {
+  background: var(--ink);
+  color: var(--aw-gold);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 700;
+  padding: 4px 8px;
+  border: 2px solid var(--ink);
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* Permission rows — colored square ico + descriptive line */
+.aw-perm-ico {
+  width: 28px;
+  height: 28px;
+  border: 2px solid var(--ink);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  line-height: 1;
+  flex-shrink: 0;
+  font-weight: 800;
+}
+.aw-perm-ico.ok  { background: var(--chunky-green); color: #062814; }
+.aw-perm-ico.bad { background: var(--alarm-red); color: var(--white); }
+
+/* Diagonal red stripes for the "won't" / "can't" row to telegraph "blocked". */
+.aw-set-row.is-blocked {
+  background:
+    repeating-linear-gradient(
+      45deg,
+      transparent 0 8px,
+      rgba(255, 77, 77, 0.12) 8px 9px
+    );
+}
+
+/* Dashed warning strip ("check the URL, fren") */
+.aw-warn-strip {
+  border: 3px dashed var(--ink);
+  padding: 6px 10px;
+  font-family: var(--font-pixel);
+  font-weight: 700;
+  font-size: 11px;
+  line-height: 1.3;
+  display: flex;
+  gap: 6px;
+  align-items: flex-start;
+  background: transparent;
+}
+.aw-warn-strip .ico { font-size: 13px; flex-shrink: 0; }
+
+/* =========================================================================
+   RECEIVE  — sourced 1:1 from the design `.receive-card`. Tilted card,
+   yellow "scan me" stamp top-right, cream QR frame with brand-icon overlay
+   in the center, ink-on-yellow address bar, copy/share share-row, then a
+   solid red warning strip.
+   ========================================================================= */
+
+.aw-receive-card {
+  background: var(--panel);
+  border: var(--border-rule);
+  box-shadow: var(--shadow);
+  padding: 18px;
+  text-align: center;
+  position: relative;
+  transform: rotate(-1deg);
+  margin: 6px 0 14px;
+}
+.aw-receive-stamp {
+  position: absolute;
+  top: -14px;
+  right: -12px;
+  background: var(--aw-gold);
+  color: var(--on-gold);
+  border: var(--border-rule);
+  box-shadow: var(--shadow-sm);
+  font-family: var(--font-display);
+  font-size: 14px;
+  padding: 4px 9px;
+  transform: rotate(8deg);
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+.aw-qr-frame {
+  background: #F4F1FF;
+  border: var(--border-rule);
+  box-shadow: var(--shadow-sm);
+  width: 200px;
+  height: 200px;
+  margin: 0 auto 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  padding: 6px;
+  box-sizing: border-box;
+}
+.aw-qr-frame svg { width: 100%; height: 100%; }
+.aw-qr-overlay {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 44px;
+  height: 44px;
+  background: var(--aw-gold);
+  border: var(--border-rule);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+  box-sizing: border-box;
+}
+.aw-qr-overlay svg, .aw-qr-overlay img { width: 100%; height: 100%; }
+.aw-addr-card {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 700;
+  background: var(--ink);
+  color: var(--aw-gold);
+  padding: 10px 12px;
+  word-break: break-all;
+  text-align: center;
+  border: 2px solid var(--ink);
+  margin-bottom: 10px;
+}
+.aw-share-row {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 8px;
+}
+.aw-share-row button {
+  background: var(--secondary);
+  color: var(--text);
+  border: var(--border-rule);
+  box-shadow: var(--shadow-sm);
+  padding: 10px;
+  font-family: var(--font-body);
+  font-weight: 800;
+  font-size: 13px;
+  text-transform: lowercase;
+  cursor: pointer;
+  border-radius: 0;
+  transition: transform 80ms, box-shadow 80ms, background 80ms;
+}
+.aw-share-row button:hover  { transform: translate(2px, 2px); box-shadow: none; background: var(--aw-gold); color: var(--on-gold); }
+.aw-share-row button.copied { background: var(--chunky-green); color: #062814; }
+
+.aw-warn {
+  margin-top: 4px;
+  padding: 10px 12px;
+  background: var(--alarm-red);
+  color: var(--white);
+  border: var(--border-rule);
+  box-shadow: var(--shadow-sm);
+  font-family: var(--font-pixel);
+  font-weight: 700;
+  font-size: 12px;
+  line-height: 1.3;
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+}
+.aw-warn .ico { font-size: 18px; line-height: 1; flex-shrink: 0; }
+
+/* =========================================================================
+   SEND  — sourced from the design `.amt-stage` / `.field-card` / `.cta-primary`.
+   Big stroked Press Start 2P amount + USD secondary + cream token pill picker, then a
+   field card for recipient, then a wide red CTA at the bottom.
+   ========================================================================= */
+
+.aw-amt-stage {
+  background: var(--panel-2);
+  border: var(--border-rule);
+  box-shadow: var(--shadow);
+  padding: 22px 18px 18px;
+  text-align: center;
+}
+.aw-amt-input {
+  font-family: var(--font-display);
+  text-transform: uppercase;
+  color: var(--white);
+  -webkit-text-stroke: 2px var(--ink);
+  paint-order: stroke fill;
+  font-size: 34px;
+  line-height: 1.3;
+  letter-spacing: 0;
+  border: none;
+  background: transparent;
+  outline: none;
+  text-align: center;
+  width: 100%;
+  padding: 0;
+  -moz-appearance: textfield;
+}
+.aw-amt-input::-webkit-outer-spin-button,
+.aw-amt-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+.aw-amt-secondary {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  opacity: 0.7;
+  margin-top: 2px;
+}
+
+/* Balance + MAX, sits on its OWN line directly above the token picker pill.
+   Block-level flex with justify-content: center forces a line break against
+   the inline-flex token pill that follows — otherwise both inline-flex
+   siblings sit side by side. */
+.aw-amt-balance {
+  margin-top: 14px;
+  margin-bottom: 4px;
+  display: flex; justify-content: center; align-items: center; gap: 8px;
+  font-family: var(--font-mono); font-size: 11px;
+}
+.aw-amt-balance .val { font-weight: 700; color: var(--text); }
+.aw-amt-max {
+  background: var(--secondary);
+  border: 2px solid var(--ink);
+  font-family: var(--font-display); font-size: 10px;
+  letter-spacing: 0.04em;
+  padding: 2px 6px;
+  cursor: pointer;
+  color: var(--text);
+}
+.aw-amt-max:hover:not(:disabled) { background: var(--aw-gold); color: var(--on-gold); }
+.aw-amt-max:disabled { opacity: 0.4; cursor: not-allowed; }
+
+.aw-amt-token {
+  position: relative;
+  display: inline-flex;
+}
+.aw-amt-token-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--cream);
+  border: var(--border-rule);
+  box-shadow: var(--shadow-sm);
+  padding: 6px 10px;
+  font-family: var(--font-body);
+  font-weight: 800;
+  font-size: 14px;
+  margin-top: 12px;
+  cursor: pointer;
+  text-transform: uppercase;
+}
+.aw-amt-token-trigger .car { font-family: var(--font-mono); font-size: 11px; opacity: 0.6; }
+.aw-amt-token-menu {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 50%;
+  transform: translateX(-50%);
+  min-width: 220px;
+  max-height: 240px;
+  overflow-y: auto;
+  background: var(--panel-2);
+  border: var(--border-rule);
+  box-shadow: var(--shadow);
+  z-index: 100;
+}
+.aw-amt-token-menu button {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 9px 12px;
+  border: 0;
+  border-bottom: 2px solid var(--border-dim);
+  background: var(--panel-2);
+  cursor: pointer;
+  font-family: var(--font-body);
+  font-weight: 700;
+  font-size: 13px;
+  text-align: left;
+  color: var(--text);
+}
+.aw-amt-token-menu button:last-child { border-bottom: 0; }
+.aw-amt-token-menu button:hover      { background: var(--tile); }
+.aw-amt-token-menu button.is-current { background: var(--aw-gold); color: var(--on-gold); }
+.aw-amt-token-menu .bal {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 600;
+  opacity: 0.6;
+  margin-left: 10px;
+}
+
+.aw-field-card {
+  background: var(--panel);
+  border: var(--border-rule);
+  box-shadow: var(--shadow-sm);
+  padding: 10px 12px;
+}
+.aw-field-card > label {
+  font-family: var(--font-body);
+  font-weight: 800;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  display: block;
+  margin-bottom: 4px;
+}
+.aw-field-card input {
+  width: 100%;
+  box-sizing: border-box;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  border: none;
+  background: transparent;
+  outline: none;
+  padding: 0;
+  color: var(--text);
+}
+
+/* Gas card — sourced from the design `.gas-card`. White card + "gas"
+   header with current network estimate, 3-up grid of tiers. */
+.aw-gas-card {
+  background: var(--panel);
+  border: var(--border-rule);
+  box-shadow: var(--shadow-sm);
+  padding: 12px 14px;
+}
+.aw-gas-card .head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+.aw-gas-card .head .lbl {
+  font-family: var(--font-body);
+  font-weight: 800;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.aw-gas-card .head .val {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 700;
+}
+.aw-gas-options {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+}
+.aw-gas-option {
+  background: var(--cream);
+  border: 2px solid var(--ink);
+  padding: 6px 4px;
+  cursor: pointer;
+  border-radius: 0;
+  font-family: var(--font-body);
+  font-weight: 800;
+  font-size: 11px;
+  text-transform: lowercase;
+  text-align: center;
+  line-height: 1.2;
+  color: var(--text);
+}
+.aw-gas-option.is-on { background: var(--aw-gold); color: var(--on-gold); }
+.aw-gas-option .num {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  opacity: 0.7;
+  display: block;
+  margin-top: 2px;
+  font-weight: 700;
+}
+/* Gwei sub-line under each gas tier (and inline next to the head USD).
+   Slightly dimmer than the eta + uppercase to read as raw protocol data. */
+.aw-gas-option .num.gwei { font-size: 9px; opacity: 0.55; }
+.aw-gas-card .head .val .gwei {
+  font-family: var(--font-mono); font-weight: 600;
+  font-size: 10px; opacity: 0.55;
+  margin-left: 2px;
+}
+
+.aw-cta-primary {
+  width: 100%;
+  box-sizing: border-box;
+  background: var(--alarm-red);
+  color: var(--white);
+  border: var(--border-rule);
+  box-shadow: var(--shadow);
+  padding: 14px;
+  font-family: var(--font-display);
+  text-transform: uppercase;
+  font-size: 14px;
+  cursor: pointer;
+  letter-spacing: 0.02em;
+  line-height: 1;
+  border-radius: 0;
+  transition: transform 100ms, box-shadow 100ms;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-top: auto;
+}
+.aw-cta-primary:hover  { transform: translate(2px, 2px); box-shadow: var(--shadow-sm); }
+.aw-cta-primary:active { transform: translate(4px, 4px); box-shadow: none; }
+.aw-cta-primary:disabled {
+  background: var(--secondary);
+  color: var(--muted);
+  cursor: not-allowed;
+  opacity: 0.7;
+  /* hatch fill so disabled state is unmistakable */
+  background-image: repeating-linear-gradient(45deg, transparent 0 8px, rgba(255,255,255,0.06) 8px 9px);
+}
+
+/* =========================================================================
+   REVIEW (Send confirm phase)  — sourced from the design review mock.
+   "going out" stamp + big stroked amount + cream recipient block +
+   network/fee/total breakdown + warning strip + CTA.
+   ========================================================================= */
+
+.aw-review-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-bottom: 4px;
+}
+.aw-review-head .back {
+  background: var(--secondary);
+  border: var(--border-rule);
+  box-shadow: var(--shadow-sm);
+  width: 32px; height: 32px;
+  cursor: pointer;
+  font-size: 16px;
+  border-radius: 0;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.aw-review-head .title {
+  font-family: var(--font-display);
+  font-size: 17px;
+  text-transform: uppercase;
+  line-height: 1;
+  color: var(--text);
+}
+.aw-review-head .sub {
+  display: block;
+  font-family: var(--font-pixel);
+  font-weight: 700;
+  font-size: 11px;
+  opacity: 0.6;
+  margin-top: 2px;
+}
+
+.aw-going-stamp {
+  position: absolute;
+  top: -12px;
+  left: 50%;
+  transform: translateX(-50%) rotate(-3deg);
+  background: var(--alarm-red);
+  color: var(--white);
+  border: var(--border-rule);
+  box-shadow: var(--shadow-sm);
+  font-family: var(--font-display);
+  font-size: 13px;
+  letter-spacing: 0.04em;
+  padding: 4px 10px 3px;
+  text-transform: uppercase;
+  z-index: 2;
+  white-space: nowrap;
+}
+
+.aw-amt-display {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding-top: 6px;
+}
+.aw-amt-display .num {
+  font-family: var(--font-display);
+  text-transform: uppercase;
+  color: var(--white);
+  -webkit-text-stroke: 2px var(--ink);
+  paint-order: stroke fill;
+  font-size: 32px;
+  line-height: 1.3;
+  letter-spacing: 0;
+}
+.aw-amt-display .sym {
+  background: var(--aw-gold);
+  color: var(--on-gold);
+  border: 2px solid var(--ink);
+  font-family: var(--font-display);
+  font-size: 14px;
+  letter-spacing: 0.04em;
+  padding: 3px 7px 2px;
+  text-transform: uppercase;
+}
+
+.aw-arrow-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  background: var(--aw-gold);
+  color: var(--on-gold);
+  border: var(--border-rule);
+  box-shadow: var(--shadow-sm);
+  font-family: var(--font-display);
+  font-size: 16px;
+  margin: 6px auto;
+}
+
+.aw-recipient-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--cream);
+  border: 2px solid var(--ink);
+  padding: 10px;
+}
+.aw-recipient-row .info { min-width: 0; flex: 1; }
+.aw-recipient-row .addr {
+  font-family: var(--font-mono); font-weight: 700;
+  font-size: 12px; color: var(--teal);
+  word-break: break-all; line-height: 1.3;
+}
+
+.aw-fee-card {
+  background: var(--panel);
+  border: var(--border-rule);
+  box-shadow: var(--shadow-sm);
+}
+.aw-fee-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 9px 14px;
+}
+.aw-fee-row .k {
+  font-family: var(--font-body);
+  font-weight: 800;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.aw-fee-row .v { font-family: var(--font-mono); font-size: 13px; font-weight: 700; }
+.aw-fee-divider {
+  height: 0;
+  border-top: 2px dashed var(--ink);
+  margin: 0 14px;
+}
+.aw-fee-row.is-total .k { font-weight: 900; font-size: 12px; }
+.aw-fee-row.is-total .v {
+  background: var(--aw-gold);
+  color: var(--on-gold);
+  border: 2px solid var(--ink);
+  padding: 3px 8px;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+/* =========================================================================
+   SIGN CONFIRM (5-mode: message / typed / approve / raw / 7702)
+   Each mode has a distinct stamp colour, body shape, and CTA lock.
+   ========================================================================= */
+
+/* Header strip — same shape as connect-head, with mode-specific stamp */
+.aw-sign-head {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 10px;
+  background: var(--ink);
+  color: var(--aw-gold);
+  border: var(--border-rule);
+  box-shadow: var(--shadow-sm);
+}
+.aw-sign-head .ico {
+  width: 28px; height: 28px;
+  background: var(--aw-gold);
+  color: var(--on-gold);
+  border: 2px solid var(--ink);
+  flex-shrink: 0; object-fit: contain;
+  image-rendering: -webkit-optimize-contrast;
+}
+.aw-sign-head .meta { flex: 1; min-width: 0; }
+.aw-sign-head .host {
+  font-family: var(--font-mono); font-weight: 700; font-size: 12px;
+  color: var(--aw-gold);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  line-height: 1.1;
+}
+.aw-sign-head .sub {
+  display: block;
+  font-family: var(--font-display); font-weight: 400;
+  font-size: 13px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--aw-gold);
+  margin-top: 2px;
+}
+
+.aw-sign-stamp {
+  font-family: var(--font-display);
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  padding: 4px 8px 3px;
+  border: 2px solid var(--ink);
+  box-shadow: var(--shadow-sm);
+  text-transform: uppercase;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+.aw-sign-stamp.tone-low  { background: var(--chunky-green); color: #062814; }
+.aw-sign-stamp.tone-warn { background: var(--aw-gold);  color: var(--on-gold); }
+.aw-sign-stamp.tone-bad  { background: var(--alarm-red);    color: var(--white); }
+
+/* Signer line — the first row inside every sign-confirm action card,
+   sitting just below the yellow `<h4>` strip and followed by a dashed
+   divider (.aw-row-dashed). Anchors "who's signing" to the action card it
+   applies to. Full 0x40 hex address; no truncation. */
+.aw-signer-line {
+  display: flex; align-items: baseline; gap: 8px;
+  flex-wrap: wrap;
+}
+.aw-signer-line .cap {
+  font-family: var(--font-display); font-size: 11px;
+  text-transform: uppercase; letter-spacing: 0.04em;
+  color: var(--text); opacity: 0.55;
+  flex-shrink: 0;
+}
+.aw-signer-line .addr {
+  font-family: var(--font-mono); font-weight: 700; font-size: 12px;
+  color: var(--teal);
+  word-break: break-all; min-width: 0;
+}
+
+/* Action card header (yellow caps strip used across all modes) */
+.aw-action-card {
+  background: var(--panel);
+  border: var(--border-rule);
+  box-shadow: var(--shadow-sm);
+  padding: 0;
+}
+.aw-action-card h4 {
+  margin: 0;
+  padding: 6px 12px;
+  font-family: var(--font-display);
+  font-size: 13px;
+  letter-spacing: 0.04em;
+  border-bottom: var(--border-rule);
+  background: var(--aw-gold);
+  color: var(--on-gold);
+  text-transform: uppercase;
+}
+.aw-action-card .body { padding: 8px 10px; display: flex; flex-direction: column; gap: 8px; }
+.aw-action-card .url-pill {
+  font-family: var(--font-mono); font-size: 12px; font-weight: 600;
+  background: var(--cream);
+  border: 2px solid var(--ink);
+  padding: 5px 8px;
+  word-break: break-all;
+}
+.aw-action-card .kv-grid {
+  display: grid;
+  grid-template-columns: 80px 1fr;
+  row-gap: 8px;
+  column-gap: 10px;
+  align-items: baseline;
+  font-size: 12px;
+}
+.aw-action-card .kv-grid dt {
+  font-family: var(--font-body); font-weight: 800;
+  text-transform: lowercase; color: var(--text);
+}
+.aw-action-card .kv-grid dd {
+  margin: 0;
+  font-family: var(--font-body); font-weight: 800; font-size: 13px;
+}
+.aw-action-card .kv-grid dd.mono {
+  font-family: var(--font-mono); font-size: 12px; font-weight: 600;
+  word-break: break-all;
+}
+.aw-action-card .row-sep {
+  grid-column: 1 / -1;
+  border-top: 2px dashed var(--ink);
+  margin: 0;
+  height: 0;
+}
+
+/* "no funds will move" tip (mode A) */
+.aw-tip-strip {
+  border: 3px dashed var(--ink);
+  background: transparent;
+  padding: 8px 10px;
+  font-family: var(--font-pixel); font-weight: 700; font-size: 12px;
+  display: flex; gap: 6px; align-items: flex-start;
+  line-height: 1.3;
+}
+.aw-tip-strip .ico { font-size: 14px; flex-shrink: 0; }
+
+/* Big banner (modes D / E — top-of-screen red explainer) */
+.aw-big-banner {
+  background: var(--alarm-red);
+  color: var(--white);
+  border: var(--border-rule);
+  box-shadow: var(--shadow-sm);
+  padding: 10px 12px;
+  font-family: var(--font-pixel); font-weight: 700; font-size: 12px;
+  line-height: 1.3;
+}
+.aw-big-banner h5 {
+  margin: 0 0 4px;
+  font-family: var(--font-display);
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+.aw-tldr {
+  background: var(--ink); color: var(--aw-gold);
+  font-family: var(--font-mono); font-size: 11px; font-weight: 700;
+  padding: 6px 8px; margin-top: 8px;
+  border: 2px solid var(--ink);
+}
+
+/* TYPED DATA structured message table (mode B) */
+.aw-typed-msg {
+  border: 2px solid var(--ink);
+  background: var(--cream);
+}
+.aw-typed-msg .head {
+  background: var(--aw-gold);
+  color: var(--on-gold);
+  border-bottom: 2px solid var(--ink);
+  padding: 4px 8px;
+  font-family: var(--font-display); font-size: 11px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+/* (Extra-fields styling removed — schema is now rejected upstream.) */
+
+/* ───── Typed-data semantic redesign ─────────────────────────────────────
+   New typed-data sign layout: dapp URL pill, then 5 semantic rows
+   (who/to/what/much/when), domain footer pill, collapsible raw-data
+   accordion. Replaces the old "domain block + flat key list" view.        */
+
+/* (URL pill removed — SignHead already shows the origin at the top of
+   every sign-confirm screen, so a second URL pill inside the action card
+   body would be visual repetition.) */
+
+/* Semantic row — narrow gray lowercase label on the left, content stack
+   on the right. Used for who / to / what / much / when. */
+.aw-semrow {
+  display: grid;
+  grid-template-columns: 60px 1fr;
+  gap: 12px;
+  align-items: start;
+  padding: 8px 0;
+}
+.aw-semrow .k {
+  font-family: var(--font-body); font-weight: 700;
+  font-size: 11px; opacity: 0.6;
+  text-transform: lowercase;
+  padding-top: 4px;
+}
+.aw-semrow .v {
+  display: flex; flex-direction: column; gap: 4px;
+  min-width: 0;
+}
+.aw-semrow .v .dash {
+  color: var(--text); opacity: 0.3; font-size: 18px;
+}
+/* Lead — flex-wrap row holding the bold name, verified badge, and inline
+   contract address + copy button. Each piece keeps its own visual weight
+   (name = 16px bold, addr = 11px mono dim) so hierarchy reads even when
+   they sit on the same line. */
+.aw-semrow .v .lead {
+  display: flex; align-items: center; gap: 6px 10px; flex-wrap: wrap;
+  word-break: break-word;
+}
+.aw-semrow .v .lead .name {
+  font-family: var(--font-body); font-weight: 800;
+  font-size: 16px; color: var(--text);
+}
+.aw-semrow .v .lead .addr {
+  font-family: var(--font-mono); font-size: 11px; font-weight: 600;
+  opacity: 0.65;
+  color: var(--teal);
+  word-break: break-all;
+}
+
+/* Yellow chunky amount block (much row) — neobrutalist filled pill. */
+.aw-amount-pill {
+  display: inline-block;
+  background: var(--aw-gold);
+  border: 3px solid var(--ink);
+  box-shadow: 3px 3px 0 var(--ink);
+  padding: 4px 10px;
+  font-family: var(--font-display); font-weight: 400;
+  font-size: 12px; letter-spacing: 0.04em;
+  color: var(--on-gold);
+}
+
+/* Dashed separator between when-row and domain pill. */
+.aw-row-dashed {
+  border-top: 2px dashed var(--ink);
+  opacity: 0.4;
+  margin: 4px 0 6px;
+}
+
+/* Domain footer pill — neutral cream pill carrying domain.name + chainId.
+   No ✓/? prefix or color-coded verification (that's a future-version
+   feature once we maintain a real registry of dapp/protocol identities). */
+.aw-domain-pill {
+  display: inline-flex; align-items: center; gap: 6px;
+  align-self: flex-start;
+  padding: 4px 10px;
+  border: 2px solid var(--ink);
+  background: var(--cream);
+  color: var(--text);
+  font-family: var(--font-body); font-weight: 700;
+  font-size: 12px;
+}
+.aw-domain-pill .chain { opacity: 0.6; font-weight: 600; }
+
+/* Raw data accordion — collapsed by default; opens to a black/yellow
+   monospace JSON pane (max height + scroll for huge messages). */
+.aw-rawdata {
+  border: 2px solid var(--ink);
+  background: var(--panel);
+}
+.aw-rawdata > summary {
+  list-style: none;
+  padding: 8px 10px;
+  display: flex; align-items: center; gap: 6px;
+  cursor: pointer;
+  font-family: var(--font-body); font-weight: 700; font-size: 12px;
+}
+.aw-rawdata > summary::-webkit-details-marker { display: none; }
+.aw-rawdata > summary .caret {
+  font-size: 10px;
+  display: inline-block;
+  transition: transform 150ms;
+}
+.aw-rawdata[open] > summary .caret { transform: rotate(90deg); }
+.aw-rawdata > summary .lbl  { flex: 1; }
+.aw-rawdata > summary .meta {
+  font-family: var(--font-mono); font-weight: 600; font-size: 11px;
+  opacity: 0.5;
+}
+.aw-rawdata pre {
+  margin: 0;
+  padding: 10px;
+  background: var(--ink);
+  color: var(--aw-gold);
+  font-family: var(--font-mono); font-size: 11px;
+  white-space: pre-wrap; word-break: break-all;
+  max-height: 220px;
+  overflow-y: auto;
+  border-top: 2px solid var(--ink);
+}
+
+/* APPROVE mode (mode C) */
+.aw-approve-display {
+  background: var(--cream);
+  border: 2px solid var(--ink);
+  padding: 14px 12px;
+  text-align: center;
+  display: flex; flex-direction: column; align-items: center; gap: 10px;
+}
+.aw-approve-display .cap {
+  font-family: var(--font-pixel); font-weight: 700; font-size: 12px; opacity: 0.7;
+}
+.aw-approve-display .big {
+  display: flex; align-items: center; justify-content: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  font-family: var(--font-display);
+  color: var(--white);
+  -webkit-text-stroke: 2px var(--ink); paint-order: stroke fill;
+  font-size: 34px; line-height: 1.3;
+  max-width: 100%; min-width: 0;
+}
+.aw-approve-display .big .sym {
+  background: var(--aw-gold);
+  border: 2px solid var(--ink);
+  padding: 3px 7px 2px;
+  font-size: 13px;
+  letter-spacing: 0.04em;
+  -webkit-text-stroke: 0;
+  color: var(--on-gold);
+  text-transform: uppercase;
+}
+.aw-approve-toggle {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 6px; width: 100%;
+}
+.aw-approve-toggle button {
+  background: var(--secondary);
+  border: 2px solid var(--ink);
+  padding: 8px;
+  font-family: var(--font-body); font-weight: 800; font-size: 13px;
+  text-transform: lowercase;
+  cursor: pointer;
+  border-radius: 0;
+  color: var(--text);
+}
+.aw-approve-toggle button.is-on { background: var(--aw-gold); color: var(--on-gold); }
+.aw-approve-toggle button:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* Editable cap input — appears below the toggle when 'capped' is active.
+   Same neobrutalist treatment as aw-input elsewhere; symbol pill on the
+   right echoes the dapp's request. */
+.aw-approve-input {
+  margin-top: 8px;
+  display: flex; align-items: stretch;
+  border: 2px solid var(--ink);
+  background: var(--cream);
+}
+.aw-approve-input input {
+  flex: 1; min-width: 0;
+  padding: 8px 10px;
+  border: 0; outline: 0;
+  background: transparent;
+  font-family: var(--font-mono); font-weight: 700; font-size: 14px;
+  color: var(--text);
+}
+.aw-approve-input input:disabled { opacity: 0.55; }
+.aw-approve-input .sym {
+  display: flex; align-items: center;
+  padding: 0 10px;
+  background: var(--aw-gold);
+  color: var(--on-gold);
+  border-left: 2px solid var(--ink);
+  font-family: var(--font-display); font-size: 12px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+/* The wallet intentionally ships no "verified contract" tag classes.
+   Friendly-name badges depend on a maintained address registry — a
+   stale entry there is a free phishing assist. Sign-confirm displays
+   the raw 0x40 hex address everywhere and defers identification to
+   the user's preferred explorer. */
+
+.aw-chain-badge {
+  background: var(--aw-gold);
+  color: var(--on-gold);
+  border: 2px solid var(--ink);
+  font-family: var(--font-display); font-size: 10px;
+  padding: 2px 6px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  display: inline-block;
+  margin-left: 6px;
+}
+.aw-chain-badge.is-test { background: var(--chunky-green); color: #062814; }
+
+/* RAW BYTES mode (mode D) */
+.aw-raw-show-more {
+  margin-top: 6px;
+  display: inline-block;
+  background: var(--ink); color: var(--aw-gold);
+  font-family: var(--font-mono); font-size: 10px; font-weight: 700;
+  padding: 3px 8px;
+  border: 2px solid var(--ink);
+  cursor: pointer;
+}
+.aw-ack-row {
+  background: var(--alarm-red);
+  border: 2px solid var(--ink);
+  box-shadow: var(--shadow-sm);
+  color: var(--white);
+  padding: 8px 10px;
+  display: flex; gap: 8px; align-items: flex-start;
+  font-family: var(--font-pixel); font-weight: 700; font-size: 12px;
+  line-height: 1.3;
+}
+.aw-ack-row input { margin-top: 2px; flex-shrink: 0; accent-color: var(--ink); }
+
+/* CTA variants */
+.aw-cta-locked {
+  background: var(--alarm-red); color: var(--white);
+  background-image: repeating-linear-gradient(45deg, transparent 0 6px, rgba(255,255,255,0.18) 6px 7px);
+}
+
+/* Slide-to-confirm (mode E) */
+.aw-slide-hint {
+  background: var(--aw-gold);
+  border: var(--border-rule);
+  box-shadow: var(--shadow-sm);
+  font-family: var(--font-display);
+  font-size: 13px;
+  letter-spacing: 0.04em;
+  padding: 6px 10px;
+  text-align: center;
+  text-transform: uppercase;
+  color: var(--on-gold);
+}
+.aw-slide-track {
+  position: relative;
+  height: 38px;
+  background: var(--ink);
+  color: var(--aw-gold);
+  border: var(--border-rule);
+  font-family: var(--font-display);
+  font-size: 12px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  user-select: none;
+  overflow: hidden;
+  margin-top: 4px;
+}
+.aw-slide-track .label {
+  position: absolute; left: 0; right: 0; text-align: center;
+  pointer-events: none;
+}
+.aw-slide-thumb {
+  position: absolute;
+  top: 0; left: 0; bottom: 0;
+  width: 52px;
+  background: var(--aw-gold);
+  border-right: 2px solid var(--ink);
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--font-display); font-size: 16px;
+  color: var(--on-gold);
+  cursor: grab;
+  z-index: 1;
+  touch-action: none;
+}
+.aw-slide-thumb:active { cursor: grabbing; }
+.aw-slide-track.is-unlocked { background: var(--chunky-green); color: #062814; }
+.aw-slide-track.is-unlocked .aw-slide-thumb { cursor: default; }
+
+/* =========================================================================
+   TOAST  — sourced from the design's `.toast`. Yellow / green / red tones,
+   slight CCW tilt, hard-shadow, fixed bottom. Non-blocking, auto-dismisses
+   after ~2.2 s. Sits above the conn-strip (z-index 50) so it doesn't tuck
+   under it. Negative tilt + slide-in animation gives a "stamped" feel.
+   ========================================================================= */
+.aw-toast {
+  position: fixed;
+  /* Body is 360 px wide (see `body` rule). When the popup runs as the
+     real chrome extension popup, viewport === body so left:14/right:14
+     produces a 332-px-wide bar. When the popup is loaded as a regular
+     tab (dev inspection, e2e), `position: fixed` anchors to the wider
+     browser viewport instead — `max-width` + `left: 14px` keeps the
+     toast at popup-body width regardless of where it's rendered. */
+  left: 14px;
+  right: auto;
+  max-width: calc(360px - 28px);
+  width: calc(100vw - 28px);
+  bottom: 70px;
+  background: var(--aw-gold);
+  color: var(--on-gold);
+  border: var(--border-rule);
+  box-shadow: var(--shadow);
+  padding: 10px 14px;
+  font-family: var(--font-pixel);
+  font-weight: 700;
+  font-size: 13px;
+  line-height: 1.3;
+  display: flex;
+  /* `flex-start` so the leading icon stays pinned to the top of the
+     box instead of vertically centering against a multi-line text run.
+     Without it the icon would drift down as the text grows. */
+  align-items: flex-start;
+  gap: 8px;
+  transform: rotate(-1deg);
+  /* Above EVERY other stacking context in the popup — modal backdrop
+     (70), any future overlays. Toasts are user-feedback and must
+     always be visible when they fire. */
+  z-index: 999;
+  animation: aw-toast-in 180ms ease-out;
+  word-break: break-word;
+  /* Cap height so verbose errors (viem InsufficientFunds dumps the
+     full calldata + a multi-paragraph explainer) can't grow the toast
+     past the popup viewport. Content overflows from the bottom — the
+     useful first ~6 lines stay visible, the trailing dump clips. */
+  max-height: 30vh;
+  overflow: hidden;
+}
+.aw-toast.green { background: var(--chunky-green); color: #062814; }
+.aw-toast.red   { background: var(--alarm-red); color: var(--white); }
+.aw-toast .ico  { font-size: 18px; line-height: 1; flex-shrink: 0; }
+
+@keyframes aw-toast-in {
+  from { opacity: 0; transform: translateY(16px) rotate(-3deg); }
+  to   { opacity: 1; transform: translateY(0) rotate(-1deg); }
+}
+
+.aw-tlist {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.aw-trow {
+  display: grid;
+  grid-template-columns: 36px 1fr auto;
+  gap: 10px;
+  align-items: center;
+  background: var(--panel-row);
+  border: var(--border-width) solid var(--border-dim);
+  box-shadow: var(--shadow-sm);
+  padding: 10px 12px;
+  cursor: default;
+  text-align: left;
+  border-radius: 0;
+  transition: transform 80ms, box-shadow 80ms;
+}
+.aw-trow.is-clickable { cursor: pointer; }
+.aw-trow.is-clickable:hover {
+  background: var(--tile);
+  transform: translate(2px, 2px);
+  box-shadow: none;
+}
+
+/* Coloured token glyph squares — first letter of symbol over a brand color.
+   Real token logos would need network fetches we'd rather avoid for v1. */
+.aw-tic {
+  width: 36px;
+  height: 36px;
+  border: var(--border-rule);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-display);
+  font-size: 14px;
+  flex-shrink: 0;
+  text-transform: uppercase;
+}
+.aw-tic.usdc { background: #2775CA; color: var(--white); }
+.aw-tic.usdt { background: #26A17B; color: var(--white); }
+.aw-tic.dai  { background: var(--aw-gold); color: var(--on-gold); }
+.aw-tic.weth { background: var(--ink);      color: var(--white); }
+.aw-tic.eth  { background: #627EEA;         color: var(--white); }
+.aw-tic.gen  { background: var(--secondary); color: var(--text); }
+
+.aw-trow .nm  { font-weight: 800; font-size: 15px; line-height: 1.1; }
+.aw-trow .sub { font-family: var(--font-mono); font-size: 10px; opacity: 0.7; margin-top: 2px; }
+.aw-trow .right { text-align: right; }
+.aw-trow .bal { font-family: var(--font-mono); font-size: 14px; font-weight: 700; line-height: 1.1; }
+
+/* Right-click context menu — replaces the old always-visible ✕ on each
+   removable token row. Anchored to the row's right edge, vertically
+   centered, overlaps the balance area with high z-index. Click outside
+   or press Escape to close (handled in dashboard.tsx). */
+.aw-trow {
+  position: relative;
+}
+.aw-trow-ctx {
+  position: absolute;
+  top: 50%;
+  right: 6px;
+  transform: translateY(-50%);
+  z-index: 30;
+  display: flex;
+  gap: 4px;
+}
+.aw-trow-ctx-btn {
+  background: var(--alarm-red, #e85d4f);
+  color: var(--white);
+  border: 2px solid var(--ink);
+  box-shadow: 2px 2px 0 var(--ink);
+  padding: 6px 10px;
+  font-family: var(--font-pixel);
+  font-weight: 700;
+  font-size: 12px;
+  cursor: pointer;
+  letter-spacing: 0.02em;
+  transition: transform 80ms;
+}
+.aw-trow-ctx-btn:hover {
+  transform: translate(1px, 1px);
+  box-shadow: 1px 1px 0 var(--ink);
+}
+.aw-trow-ctx-btn:active {
+  transform: translate(2px, 2px);
+  box-shadow: none;
+}
+
+/* NFT card right-click context menu — mirrors `.aw-trow-ctx` but
+   anchored over the thumb instead of inline beside a row. Card has
+   `position: relative` for the absolute placement to land. */
+.aw-nft-card { position: relative; cursor: pointer; }
+/* ERC-1155 owned-count badge — small mono pill next to the tokenId
+   line on the grid card. Cream so it doesn't steal focus from the
+   name/tokenId; just a hint. */
+.aw-nft-count {
+  margin-left: 4px;
+  font-weight: 700;
+  color: var(--text);
+  opacity: 0.85;
+}
+
+/* Pre-flight simulation status pill — sits just below the action
+   card in sign-confirm. Pending = neutral; pass = green confidence
+   builder; fail isn't rendered here (the detailed revert banner
+   inside each body covers it instead). */
+.aw-sim-pill {
+  margin-top: 8px;
+  padding: 6px 10px;
+  font-size: 11px;
+  font-family: var(--font-mono);
+  border: var(--border-rule);
+  background: var(--cream);
+}
+.aw-sim-pill.is-pending { background: var(--aw-gold); color: var(--on-gold); }
+.aw-sim-pill.is-pass    { background: var(--chunky-green); color: #062814; }
+
+/* ───── Activity screen ─────────────────────────────────────────── */
+.aw-act-toolbar {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 10px;
+  flex-wrap: wrap;
+}
+.aw-act-toolbar .aw-btn {
+  font-size: 11px;
+  padding: 4px 8px;
+}
+.aw-act-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.aw-act-row {
+  display: flex;
+  gap: 10px;
+  padding: 8px 0;
+  border-top: 1px dashed rgba(255, 255, 255, 0.12);
+}
+.aw-act-row:first-child { border-top: 0; }
+.aw-act-status {
+  flex-shrink: 0;
+  width: 22px; height: 22px;
+  display: flex; align-items: center; justify-content: center;
+  border: var(--border-rule);
+  font-weight: 800;
+  font-size: 12px;
+  background: var(--secondary);
+}
+.aw-act-status.is-pending { background: var(--aw-gold); color: var(--on-gold); }
+.aw-act-status.is-success { background: var(--chunky-green); color: #062814; }
+.aw-act-status.is-failed  { background: var(--alarm-red); color: var(--white); }
+.aw-act-body { flex: 1; min-width: 0; }
+.aw-act-line1 {
+  display: flex;
+  justify-content: space-between;
+  font-size: 13px;
+  font-weight: 700;
+}
+.aw-act-line1 .time { font-size: 10px; opacity: 0.6; font-weight: 400; }
+.aw-act-line2, .aw-act-line3 { font-size: 11px; opacity: 0.75; margin-top: 2px; word-break: break-all; }
+.aw-act-line3 code { font-size: 10px; }
+.aw-act-explorer {
+  color: inherit;
+  text-decoration: none;
+  margin-left: 4px;
+}
+.aw-act-explorer:hover { opacity: 1; color: var(--gold); }
+
+/* ───── NFT detail modal ────────────────────────────────────────── */
+.aw-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  z-index: 70;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 24px 14px;
+  overflow-y: auto;
+  /* Pin to the popup body width so the modal doesn't span the wider
+     viewport when popup.html is loaded as a tab (dev inspection). */
+  max-width: 360px;
+  margin: 0 auto;
+}
+.aw-modal {
+  position: relative;
+  width: 100%;
+  max-width: calc(360px - 28px);
+  background: var(--cream);
+  border: var(--border-rule);
+  box-shadow: var(--shadow);
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.aw-modal-close {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 28px; height: 28px;
+  padding: 0;
+  border: var(--border-rule);
+  background: var(--secondary);
+  font-weight: 800;
+  cursor: pointer;
+  z-index: 1;
+}
+.aw-modal-thumb {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  border: var(--border-rule);
+  background: var(--tile);
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.aw-modal-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+.aw-modal-thumb .placeholder { font-size: 64px; }
+/* Big square token glyph for the detail modal — reuses `.aw-tic`
+   color tinting (passed as a second class) but renders at modal-card
+   scale instead of the 36 px row-icon size. */
+.aw-modal-token-icon {
+  width: 96px;
+  height: 96px;
+  margin: 0 auto;
+  border: var(--border-rule);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-display, var(--font-pixel));
+  font-weight: 800;
+  font-size: 56px;
+  background: var(--cream);
+  color: var(--text);
+  user-select: none;
+}
+.aw-modal-thumb .standard {
+  position: absolute;
+  top: 6px; left: 6px;
+  background: var(--ink);
+  color: var(--white);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  padding: 2px 6px;
+  letter-spacing: 0.04em;
+}
+.aw-modal-title {
+  margin: 4px 0 0;
+  font-size: 16px;
+  font-weight: 800;
+  word-break: break-word;
+}
+.aw-modal-balance {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  background: var(--aw-gold);
+  color: var(--on-gold);
+  border: var(--border-rule);
+}
+.aw-modal-balance .lbl { font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; opacity: 0.7; }
+.aw-modal-balance .val { font-family: var(--font-mono); font-weight: 800; font-size: 15px; flex: 1; }
+.aw-modal-refresh {
+  width: 26px; height: 26px;
+  padding: 0;
+  border: var(--border-rule);
+  background: var(--secondary);
+  cursor: pointer;
+  font-weight: 800;
+}
+.aw-modal-refresh:disabled { opacity: 0.5; cursor: wait; }
+.aw-modal-kv {
+  display: grid;
+  grid-template-columns: 80px 1fr;
+  gap: 4px 8px;
+  margin: 0;
+  font-size: 12px;
+}
+.aw-modal-kv dt {
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+  opacity: 0.6;
+  font-size: 11px;
+  align-self: center;
+}
+.aw-modal-kv dd {
+  margin: 0;
+  min-width: 0;
+}
+.aw-modal-kv code {
+  display: inline-block;
+  word-break: break-all;
+  font-size: 11px;
+  cursor: copy;
+  user-select: all;
+}
+/* Address row: bare inline `0xXXXX…XXXX ⧉` — no border, no padding,
+   no button chrome. The whole span is clickable; ⧉ is just a visual
+   affordance for "copy" so the user knows the click does something. */
+.aw-modal-addr {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  cursor: pointer;
+  user-select: none;
+}
+.aw-modal-addr:hover .aw-modal-copy-icon { opacity: 1; }
+.aw-modal-addr code {
+  /* Reset .aw-modal-kv code's `user-select: all` so the address
+     stays one click-to-copy unit instead of "select on click". */
+  font-size: 11px;
+  cursor: inherit;
+  user-select: none;
+  word-break: keep-all;
+}
+.aw-modal-copy-icon {
+  font-size: 12px;
+  opacity: 0.55;
+  transition: opacity 120ms ease-out;
+}
+.aw-nft-ctx {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 30;
+}
+.aw-nft-ctx-btn {
+  background: var(--alarm-red, #e85d4f);
+  color: var(--white);
+  border: 2px solid var(--ink);
+  box-shadow: 2px 2px 0 var(--ink);
+  padding: 6px 10px;
+  font-family: var(--font-pixel);
+  font-weight: 700;
+  font-size: 12px;
+  cursor: pointer;
+  letter-spacing: 0.02em;
+  transition: transform 80ms;
+}
+.aw-nft-ctx-btn:hover {
+  transform: translate(1px, 1px);
+  box-shadow: 1px 1px 0 var(--ink);
+}
+.aw-nft-ctx-btn:active {
+  transform: translate(2px, 2px);
+  box-shadow: none;
+}
+
+/* NFT grid — 2 columns at 360 px popup width, square thumbs with the
+   image filling the box. Brand neobrutalist treatment: 3 px ink border,
+   tilted hover, tiny corner pills for the standard tag + remove button.
+   Image fallback is a 🖼 emoji centered on a cream background. */
+.aw-nft-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  padding: 4px 0;
+}
+.aw-nft-card {
+  background: var(--tile);
+  border: var(--border-rule);
+  box-shadow: var(--shadow-sm);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.aw-nft-card .thumb {
+  position: relative;
+  aspect-ratio: 1 / 1;
+  background: var(--cream);
+  border-bottom: 2px solid var(--ink);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+.aw-nft-card .thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.aw-nft-card .thumb .placeholder {
+  font-size: 32px;
+  opacity: 0.4;
+}
+.aw-nft-card .thumb .standard {
+  position: absolute;
+  top: 4px; left: 4px;
+  background: var(--ink);
+  color: var(--white);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 5px;
+  letter-spacing: 0.04em;
+}
+.aw-nft-card .thumb .remove {
+  position: absolute;
+  top: 4px; right: 4px;
+  border: 2px solid var(--ink);
+  background: var(--secondary);
+  cursor: pointer;
+  padding: 1px 5px;
+  font-size: 10px;
+  line-height: 1;
+  font-weight: 700;
+}
+.aw-nft-card .thumb .remove:hover {
+  background: var(--alarm-red);
+  color: var(--white);
+}
+.aw-nft-card .meta {
+  padding: 6px 8px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.aw-nft-card .meta .name {
+  font-weight: 700;
+  font-size: 12px;
+  line-height: 1.15;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.aw-nft-card .meta .sub {
+  font-size: 10px;
+  opacity: 0.65;
+}
+/* Inline "send ↗" CTA on each NFT card. Mono caps font matching the
+   "+ add token" / "hide 0" strip elsewhere, so the visual language
+   stays consistent. Sits below the name/sub stack. */
+.aw-nft-send {
+  margin-top: 4px;
+  padding: 3px 6px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  border: 1px solid var(--ink);
+  background: var(--secondary);
+  color: var(--text);
+  cursor: pointer;
+  align-self: flex-start;
+}
+.aw-nft-send:hover { background: var(--aw-gold); color: var(--on-gold); }
+.aw-nft-send:active { transform: translate(1px, 1px); }
+
+.aw-add-strip {
+  margin-top: 4px;
+  border: 3px dashed var(--ink);
+  background: transparent;
+  padding: 12px;
+  text-align: center;
+  font-family: var(--font-pixel);
+  font-weight: 700;
+  font-size: 13px;
+  cursor: pointer;
+  width: 100%;
+  box-sizing: border-box;
+  border-radius: 0;
+  text-transform: lowercase;
+}
+.aw-add-strip:hover { background: var(--secondary); }
+
+/* Empty state shown when both builtin and user lists are empty (rare,
+   custom chains). */
+.aw-empty {
+  margin-top: 8px;
+  padding: 22px 18px 24px;
+  background: var(--panel);
+  border: var(--border-rule);
+  box-shadow: var(--shadow-sm);
+  text-align: center;
+  position: relative;
+}
+.aw-empty .aw-stamp {
+  position: absolute;
+  top: -16px;
+  left: 50%;
+  transform: translateX(-50%) rotate(-3deg);
+  background: var(--alarm-red);
+  color: var(--white);
+  border: var(--border-rule);
+  box-shadow: var(--shadow-sm);
+  font-family: var(--font-display);
+  font-size: 13px;
+  padding: 4px 10px;
+  text-transform: uppercase;
+}
+.aw-empty h3 {
+  font-family: var(--font-display);
+  text-transform: uppercase;
+  font-size: 16px;
+  line-height: 1.2;
+  margin: 6px 0 4px;
+}
+.aw-empty p {
+  font-family: var(--font-pixel);
+  font-weight: 700;
+  font-size: 12px;
+  margin: 0;
+  line-height: 1.3;
+}
+
+/* =========================================================================
+   SETTINGS CARD  — the design's `.settings-card`
+   Yellow header band + black-rule rows (icon · label · value · chevron)
+   ========================================================================= */
+
+.aw-set-card {
+  background: var(--panel);
+  border: var(--border-rule);
+  box-shadow: var(--shadow-sm);
+  margin-bottom: 12px;
+  border-radius: 0;
+}
+.aw-set-card h4 {
+  margin: 0;
+  padding: 6px 12px;
+  font-family: var(--font-display);
+  text-transform: uppercase;
+  font-size: 13px;
+  letter-spacing: 0.02em;
+  border-bottom: var(--border-rule);
+  background: var(--aw-gold);
+  color: var(--on-gold);
+}
+.aw-set-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 7px 12px;
+  border-bottom: 2px solid var(--ink);
+  font-family: var(--font-body);
+  font-weight: 700;
+  font-size: 12px;
+  gap: 8px;
+}
+.aw-set-row:last-child { border-bottom: none; }
+.aw-set-row .ico { width: 22px; font-size: 15px; flex-shrink: 0; }
+.aw-set-row .label { flex: 1; padding-left: 4px; text-transform: lowercase; min-width: 0; }
+.aw-set-row .val {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 600;
+  opacity: 0.7;
+  margin-right: 4px;
+  text-align: right;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 140px;
+}
+.aw-set-row .car { font-family: var(--font-mono); font-size: 12px; opacity: 0.5; }
+.aw-set-row.is-clickable { cursor: pointer; }
+.aw-set-row.is-clickable:hover { background: var(--secondary); }
+.aw-set-row.is-danger .label { color: var(--alarm-red); }
+
+/* "Allow unverified 7702 delegate" override row — visually marked when
+   currently ON so the user can't miss that the protection is disabled. */
+.aw-set-row.is-danger.is-on {
+  background: var(--alarm-red);
+}
+.aw-set-row.is-danger.is-on .label,
+.aw-set-row.is-danger.is-on .val,
+.aw-set-row.is-danger.is-on .ico {
+  color: var(--white);
+}
+
+/* Two-stage confirmation strip — appears below the danger toggle when
+   the user first taps it OFF→ON. Forces a deliberate second click on
+   the red "yes, enable override" CTA. Closing this strip = cancel. */
+.aw-danger-confirm {
+  background: var(--cream);
+  border-top: 2px dashed var(--alarm-red);
+  padding: 12px 14px;
+}
+.aw-danger-confirm p {
+  margin: 0 0 10px 0;
+  font-family: var(--font-pixel);
+  font-size: 12px;
+  line-height: 1.4;
+}
+.aw-danger-confirm p b {
+  background: var(--alarm-red);
+  color: var(--white);
+  padding: 1px 4px;
+}
+
+/* Source-verification banner inside SevenSevenZeroTwoBody. Four tone
+   variants — pending (neutral), ok (green), block (red), override
+   (red-but-acknowledged). Centered, chunky, hard to miss. */
+.aw-verify {
+  padding: 8px 10px;
+  font-family: var(--font-pixel);
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.3;
+  border: 2px solid var(--ink);
+  margin-bottom: 8px;
+}
+.aw-verify-pending {
+  background: var(--cream);
+}
+.aw-verify-block {
+  background: var(--alarm-red);
+  color: var(--white);
+}
+.aw-verify-override {
+  background: var(--ink);
+  color: var(--alarm-red);
+  border-color: var(--alarm-red);
+}
+
+/* Clickable address — used in the 7702 sign-confirm delegate row to
+   jump out to a block explorer. Inherits the dd's mono font; gets
+   an underline + a tiny ↗ arrow so it's clearly interactive. */
+.aw-addr-link {
+  color: var(--teal);
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 2px;
+  cursor: pointer;
+}
+.aw-addr-link:hover {
+  background: var(--aw-gold);
+  color: var(--on-gold);
+}
+.aw-addr-link-arrow {
+  display: inline-block;
+  margin-left: 2px;
+  font-size: 0.85em;
+  opacity: 0.7;
+}
+
+/* Aladdin toggle (sourced from the design's `.toggle`). Squared track + ink
+   knob; flips to chunky-green track + yellow knob when on. */
+
+/* ───────────────────────────────────────────────────────────────────────────
+   Welcome screen ("ALADDIN") — first-launch onboarding hero.
+   Mirrors the Aladdin neobrutalist sticker stack: oversized stroked title,
+   black-card option rows, dashed footer note. The recommended option (create)
+   is yellow + rotated red "recommended" stamp; hardware option is rendered
+   visible-but-soon to honor the design without lying about capability.
+   ─────────────────────────────────────────────────────────────────────── */
+.aw-welcome-hero {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  margin: 6px 0 14px;
+  gap: 6px;
+}
+.aw-welcome-logo {
+  background: var(--aw-gold);
+  border: var(--border-rule);
+  box-shadow: var(--shadow);
+  padding: 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transform: rotate(-3deg);
+  margin-bottom: 4px;
+}
+.aw-welcome-logo img { display: block; image-rendering: pixelated; }
+
+.aw-welcome-title {
+  font-family: var(--font-display);
+  font-size: 24px;
+  line-height: 1.0;
+  letter-spacing: 0.01em;
+  margin: 4px 0 2px;
+  color: var(--white);
+  -webkit-text-stroke: 2px var(--ink);
+  text-shadow: 3px 3px 0 var(--ink);
+}
+.aw-welcome-sub {
+  font-family: var(--font-body);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text);
+  opacity: 0.78;
+  margin: 0;
+  letter-spacing: 0.02em;
+}
+
+.aw-welcome-option {
+  position: relative;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--panel-2);
+  border: var(--border-rule);
+  box-shadow: var(--shadow);
+  padding: 12px 14px;
+  margin: 0 0 10px;
+  cursor: pointer;
+  text-align: left;
+  font-family: var(--font-body);
+  color: var(--text);
+  transition: transform 80ms ease, box-shadow 80ms ease;
+}
+.aw-welcome-option:hover  { transform: translate(2px, 2px); box-shadow: var(--shadow-sm); }
+.aw-welcome-option:active { transform: translate(4px, 4px); box-shadow: none; }
+
+.aw-welcome-option.is-recommended { background: var(--aw-gold); color: var(--on-gold); }
+.aw-welcome-option.is-soon         { opacity: 0.78; }
+
+.aw-welcome-icon {
+  flex: 0 0 auto;
+  width: 40px;
+  height: 40px;
+  background: var(--ink);
+  color: var(--aw-gold);
+  border: var(--border-rule);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-display);
+  font-size: 20px;
+  font-weight: 800;
+  line-height: 1;
+}
+.aw-welcome-body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.aw-welcome-name {
+  font-weight: 800;
+  font-size: 14px;
+  text-transform: lowercase;
+  letter-spacing: 0.01em;
+}
+.aw-welcome-hint {
+  font-size: 11px;
+  font-weight: 600;
+  opacity: 0.65;
+  text-transform: lowercase;
+}
+.aw-welcome-arrow {
+  flex: 0 0 auto;
+  font-family: var(--font-display);
+  font-size: 18px;
+  font-weight: 800;
+  opacity: 0.55;
+}
+
+.aw-welcome-rec-stamp {
+  position: absolute;
+  top: -10px;
+  right: 10px;
+  background: var(--alarm-red);
+  color: var(--white);
+  border: 2px solid var(--ink);
+  box-shadow: var(--shadow-sm);
+  padding: 2px 8px;
+  font-family: var(--font-body);
+  font-weight: 800;
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  transform: rotate(4deg);
+  pointer-events: none;
+}
+
+.aw-welcome-foot {
+  margin: 10px 0 0;
+  padding: 10px 14px;
+  border: 2px dashed var(--ink);
+  background: transparent;
+  font-family: var(--font-body);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text);
+  opacity: 0.78;
+  text-align: center;
+  line-height: 1.4;
+}
+.aw-welcome-foot span[aria-hidden] { margin-right: 6px; }
+
+/* ───────────────────────────────────────────────────────────────────────────
+   "BACK IT UP" — seed phrase backup screen (Create flow step 1).
+   Big inline page header with back chip, red banner, tap-to-reveal seed
+   black box, then 12-word grid (yellow + white alternating cells), and
+   COPY / I-WROTE-IT-DOWN action row. Mirrors the Aladdin neobrutalist
+   aesthetic (3px ink, 4px shadow, lowercase mono words, rotated stamps).
+   ─────────────────────────────────────────────────────────────────────── */
+/* Page caption — single hand-written line that sits inside the Header
+   bounding box (passed via `caption` prop on the Header component) on
+   secondary screens (BACK IT UP, Settings, Receive). Pixel font +
+   ink color at 75% opacity is the lowercase caption voice. Locked
+   to height: 12px / line-height: 12px so the row never grows past one
+   line — long captions truncate via overflow rather than reflow the
+   layout below. Lives inside .aw-header so the cream bg + sticky context
+   are shared and there's no gap between the title row and the caption. */
+.aw-header .aw-page-caption {
+  color: var(--muted);
+  display: block;
+  font-family: var(--font-pixel);
+  font-size: 12px;
+  font-weight: 700;
+  height: 12px;
+  letter-spacing: normal;
+  line-height: 12px;
+  margin-top: 2px;
+  margin-bottom: 0;
+  opacity: 0.75;
+  text-rendering: optimizeLegibility;
+  text-transform: none;
+}
+
+/* Red warning banner — emoji left, stacked text right. Headline (page id +
+   caption) sits above the warning body in uppercase + tighter
+   letter-spacing so it reads as a "page header" plus warning — the
+   subtitle is anchored inside the same card as the standard Header
+   rather than floating between header and page content. */
+.aw-warn-banner {
+  background: var(--alarm-red);
+  color: var(--white);
+  border: var(--border-rule);
+  box-shadow: var(--shadow);
+  padding: 10px 12px;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin: 0 0 14px;
+}
+.aw-warn-emoji { font-size: 22px; line-height: 1; flex-shrink: 0; }
+.aw-warn-text {
+  font-family: var(--font-body);
+  font-weight: 700;
+  font-size: 12px;
+  line-height: 1.4;
+  letter-spacing: 0.01em;
+  opacity: 0.95;
+}
+
+/* Black tap-to-reveal box. Inner dashed white border + centered emoji + CTA.
+   Click anywhere → setRevealed(true) swaps it out for the grid. */
+.aw-seed-veil {
+  width: 100%;
+  background: var(--ink);
+  border: var(--border-rule);
+  box-shadow: var(--shadow);
+  padding: 0;
+  margin: 0 0 14px;
+  cursor: pointer;
+  min-height: 220px;
+  display: flex;
+  align-items: stretch;
+  justify-content: stretch;
+  font-family: var(--font-display);
+}
+.aw-seed-veil:hover  { transform: translate(2px, 2px); box-shadow: var(--shadow-sm); }
+.aw-seed-veil:active { transform: translate(4px, 4px); box-shadow: none; }
+.aw-seed-veil-inner {
+  flex: 1;
+  margin: 12px;
+  border: 2px dashed rgba(255, 255, 255, 0.55);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 24px;
+}
+.aw-seed-emoji { font-size: 30px; line-height: 1; }
+.aw-seed-veil-cta {
+  font-family: var(--font-display);
+  font-size: 14px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  color: var(--white);
+  text-transform: uppercase;
+}
+
+/* 12-word grid — 6 rows x 2 cols, alternating yellow / white cells per the
+   mockup (cells 1,3,5,8,10,12 yellow; 2,4,6,7,9,11 white per checkerboard). */
+.aw-seed-grid {
+  background: var(--ink);
+  border: var(--border-rule);
+  box-shadow: var(--shadow);
+  padding: 8px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  margin: 0 0 14px;
+}
+.aw-seed-cell {
+  background: var(--aw-gold);
+  border: 2px solid var(--ink);
+  padding: 6px 8px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--ink);
+  min-width: 0;
+}
+/* Brand-specified white-cell positions: 2, 4, 6, 9, 10. Rest stay yellow.
+   Pattern is intentionally irregular per design — gives the grid an irregular
+   "scattered" feel rather than a clean checkerboard. */
+.aw-seed-cell:nth-child(2),
+.aw-seed-cell:nth-child(4),
+.aw-seed-cell:nth-child(6),
+.aw-seed-cell:nth-child(9),
+.aw-seed-cell:nth-child(10) { background: var(--white); }
+.aw-seed-num {
+  flex: 0 0 22px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--ink);
+  opacity: 0.55;
+  text-align: center;
+  border-right: 1px dashed rgba(0, 0, 0, 0.3);
+  padding-right: 6px;
+}
+.aw-seed-word {
+  flex: 1;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.aw-seed-actions {
+  display: flex;
+  gap: 10px;
+  margin: 0;
+}
+.aw-seed-actions .aw-btn { padding: 12px 18px; font-size: 13px; }
+
+/* (aw-pref-group removed — currency / auto-lock / network now sit as
+   three top-level aw-set-card siblings without a wrapping container.) */
+
+/* ───────────────────────────────────────────────────────────────────────────
+   Import-seed screen — Aladdin per-cell phrase entry.
+   Layout: tabs (12/24) → black-card grid of numbered word inputs → yellow
+   progress CTA "0/12 WORDS" → dashed clear-all action. Mirrors BACK IT UP
+   visual language but inputs are editable instead of read-only.
+   ─────────────────────────────────────────────────────────────────────── */
+
+/* Pixel-replica of wallet/image.png (380×615 mockup). Values measured per
+   element off the source image; keep them integer + locked-down with
+   `min-height` (and exact paddings) so any future content change can't
+   silently drift the layout. Popup root is 380px wide with 14px L/R body
+   padding → 352px content width across all block-level rows.
+     12/24 tabs           48px tall · 1:1 grid · 12px gap
+     black grid card      12px padding · 8px row gap · 10px col gap
+     each input cell      40px tall  · 30px num column · 2px ink rule
+     CTA "0/12 WORDS"     50px tall  · 15px Press Start 2P uppercase
+     clear-all            38px tall  · dashed ink border · no shadow
+*/
+
+.aw-seed-size-tabs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin: 0 0 12px;
+}
+.aw-seed-size-tab {
+  background: var(--secondary);
+  border: var(--border-rule);
+  box-shadow: var(--shadow-sm);
+  font-family: var(--font-display);
+  font-size: 14px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  padding: 0 8px;
+  cursor: pointer;
+  text-transform: lowercase;
+  color: var(--text);
+  height: 48px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 80ms ease;
+}
+.aw-seed-size-tab.is-active { background: var(--aw-gold); color: var(--on-gold); }
+.aw-seed-size-tab:hover     { transform: translate(2px, 2px); box-shadow: none; }
+
+.aw-seed-input-grid {
+  background: var(--ink);
+  border: var(--border-rule);
+  box-shadow: var(--shadow);
+  padding: 8px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
+  margin: 0 0 14px;
+}
+
+.aw-seed-input-cell {
+  background: var(--input-bg);
+  border: 2px solid var(--ink);
+  display: flex;
+  align-items: stretch;
+  gap: 0;
+  cursor: text;
+  min-width: 0;
+  height: 31px;
+}
+.aw-seed-input-num {
+  flex: 0 0 24px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--muted);
+  opacity: 0.55;
+  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--input-bg);
+  user-select: none;
+  pointer-events: none;
+}
+.aw-seed-input {
+  flex: 1;
+  min-width: 0;
+  background: transparent;
+  border: 0;
+  outline: 0;
+  padding: 0 8px;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text);
+  letter-spacing: 0.01em;
+  height: 100%;
+}
+.aw-seed-input:focus { background: rgba(255, 255, 255, 0.08); }
+
+.aw-seed-cta {
+  margin: 0 0 10px;
+  width: 100%;
+  height: 50px;
+  font-family: var(--font-display);
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 0 18px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.aw-seed-clear {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 38px;
+  background: transparent;
+  border: 2px dashed var(--ink);
+  padding: 0 12px;
+  font-family: var(--font-body);
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text);
+  text-transform: lowercase;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  opacity: 0.78;
+}
+.aw-seed-clear:hover { opacity: 1; background: rgba(255, 255, 255, 0.06); }
