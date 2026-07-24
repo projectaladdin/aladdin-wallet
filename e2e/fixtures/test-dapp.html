@@ -1,0 +1,1417 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>aladdin-wallet test-dapp</title>
+  <style>
+    body { font: 14px/1.4 system-ui, sans-serif; padding: 20px; max-width: 640px; }
+    button { display: block; margin: 6px 0; padding: 8px 14px; cursor: pointer; }
+    pre { background: #f5f5f5; padding: 10px; max-width: 100%; overflow-x: auto; white-space: pre-wrap; word-break: break-all; }
+    code { background: #eee; padding: 2px 6px; border-radius: 3px; }
+    .picker {
+      border: 1px solid #999;
+      padding: 8px;
+      margin: 6px 0 14px;
+      background: #fafafa;
+    }
+    .picker-empty { color: #888; font-style: italic; padding: 4px 0; }
+    .picker-row {
+      display: flex; align-items: center; gap: 10px;
+      padding: 6px 8px;
+      margin: 4px 0;
+      border: 1px solid #ccc;
+      background: white;
+      cursor: pointer;
+      text-align: left;
+      width: 100%;
+      font: inherit;
+    }
+    .picker-row.is-active { border-color: #2a8; background: #eafff0; }
+    .picker-row:hover { border-color: #888; }
+    .picker-row img { width: 24px; height: 24px; flex-shrink: 0; }
+    .picker-row .meta { flex: 1; min-width: 0; }
+    .picker-row .name { font-weight: 600; }
+    .picker-row .sub { font-size: 11px; color: #666; }
+    .picker-row .tag {
+      font-size: 10px;
+      padding: 2px 6px;
+      background: #eee;
+      border-radius: 3px;
+      color: #444;
+    }
+    .actions button:disabled { opacity: 0.4; cursor: not-allowed; }
+    .auth7702 {
+      border: 1px solid #999;
+      padding: 12px;
+      background: #fafafa;
+    }
+    .auth7702-presets {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-bottom: 12px;
+    }
+    /* Preset chips — shared by all five multi-scenario panels
+       (eth_sendTransaction / wallet_addEthereumChain / ERC-20 / NFT /
+       EIP-7702). */
+    .auth7702-preset, .sendtx-preset, .addchain-preset, .nft-preset, .erc20-preset {
+      margin: 0;
+      padding: 5px 9px;
+      font-size: 12px;
+      background: white;
+      border: 1px solid #bbb;
+      cursor: pointer;
+    }
+    .auth7702-preset:hover, .sendtx-preset:hover, .addchain-preset:hover, .nft-preset:hover, .erc20-preset:hover { border-color: #666; }
+    .auth7702-preset.is-active, .sendtx-preset.is-active, .addchain-preset.is-active, .nft-preset.is-active, .erc20-preset.is-active {
+      background: #d6f0d6;
+      border-color: #2a8;
+      font-weight: 600;
+    }
+    .auth7702-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin: 4px 0;
+    }
+    .auth7702-row span {
+      flex: 0 0 100px;
+      font-size: 12px;
+      color: #555;
+    }
+    .auth7702-row input {
+      flex: 1;
+      font-family: ui-monospace, SF Mono, monospace;
+      font-size: 12px;
+      padding: 4px 6px;
+      border: 1px solid #ccc;
+    }
+    #sign-authorization, #send-tx-multi, #add-chain-multi, #nft721-run, #nft1155-run, #erc20-run {
+      margin-top: 10px;
+      padding: 8px 14px;
+      font-weight: 600;
+    }
+    /* Stacked ERC-721 / ERC-1155 panels. Vertical layout keeps the
+       input rows full-width so labels and values line up across both
+       standards. */
+    .nft-panels {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .nft-panel {
+      min-width: 0;
+    }
+    .nft-panel-title {
+      margin: 0 0 8px;
+      font-size: 13px;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: #444;
+    }
+
+    /* Floating result/error panel — fixed to viewport's top-right.
+       Wallet popup opens nearby under the extension toolbar icon, so
+       the two stack vertically: popup on top, result panel just
+       below depending on popup height. */
+    .result-panel {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      width: 360px;
+      max-height: calc(100vh - 40px);
+      overflow-y: auto;
+      background: #fff;
+      border: 1px solid #999;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+      padding: 12px 14px;
+      box-sizing: border-box;
+    }
+    .result-panel h3 {
+      margin: 0 0 6px;
+      font-size: 13px;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: #444;
+    }
+    .result-panel h3 + pre + h3 { margin-top: 12px; }
+    .result-panel pre {
+      margin: 0;
+      font-size: 11px;
+      max-height: 30vh;
+    }
+    /* Status trio — two-column dt/dd grid. Tight, mono values. */
+    .result-status {
+      display: grid;
+      grid-template-columns: 70px 1fr;
+      gap: 4px 8px;
+      margin: 0 0 12px;
+      padding: 0 0 10px;
+      border-bottom: 1px dashed #ddd;
+      font-size: 12px;
+    }
+    .result-status dt {
+      color: #777;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+    .result-status dd {
+      margin: 0;
+      overflow-wrap: anywhere;
+    }
+    .result-status code {
+      background: transparent;
+      padding: 0;
+      font-size: 11px;
+    }
+    /* Narrow viewport (under ~1040 px) — drop the sidebar in-flow at
+       the bottom rather than overlapping the main content. Threshold
+       = 640 px main column + 20 px gap + 360 px sidebar + 20 px right
+       margin. */
+    @media (max-width: 1039px) {
+      .result-panel {
+        position: static;
+        width: auto;
+        margin-top: 20px;
+        box-shadow: none;
+      }
+    }
+  </style>
+</head>
+<body>
+  <h1>aladdin-wallet e2e fixture dapp</h1>
+
+  <h3>detected providers (EIP-6963)</h3>
+  <div class="picker">
+    <div id="provider-picker"><div class="picker-empty">no providers announced yet</div></div>
+  </div>
+
+  <h3>actions</h3>
+  <div class="actions">
+    <button id="connect">Connect</button>
+    <button id="personal-sign">Personal Sign</button>
+    <button id="sign-typed-data-v4">Sign Typed Data v4 (Permit)</button>
+    <button id="send-tx">Send Transaction</button>
+    <!-- wallet_watchAsset moved into each asset panel's preset chip:
+         ERC-20 panel / ERC-721 panel / ERC-1155 panel each carry a
+         "wallet_watchAsset" preset that builds on whatever the user
+         just deployed there. Keeps the asset-type binding unambiguous
+         and the actions strip uncluttered. -->
+    <!-- Phishing-vector: dapp calls deprecated eth_sign. Wallet must
+         reject with EIP-1474 code 4200 without ever showing a popup. -->
+    <button id="eth-sign-deprecated">eth_sign (deprecated — should reject)</button>
+  </div>
+
+  <h3>eth_sendTransaction (multi-scenario)</h3>
+  <!-- Mirrors the EIP-7702 multi-scenario panel below: preset chips
+       fill the to/data/value inputs, which the user can then tweak
+       before clicking Send. Each preset exercises a different branch
+       of the calldata decoder (COMMON_TX_ABI / SELECTOR_TABLE_ABI /
+       unknown-selector fallback). -->
+  <div class="auth7702">
+    <div class="auth7702-presets">
+      <button class="sendtx-preset" data-preset="approve" type="button">
+        Approve (ERC-20)
+      </button>
+      <!-- Decoder test, NOT a duplicate of the ERC-721 panel's
+           setApprovalForAll preset. This one fires against the real
+           mainnet BAYC contract + OpenSea Seaport conduit so the
+           wallet's calldata decoder picks up the recognized address
+           and renders the clickable token link. The ERC-721 panel
+           below tests the end-to-end deploy → approve flow against
+           your own locally deployed contract instead. -->
+      <button class="sendtx-preset" data-preset="set-approval-all" type="button">
+        setApprovalForAll on BAYC (decoder test)
+      </button>
+      <button class="sendtx-preset" data-preset="claim" type="button">
+        claim()
+      </button>
+      <button class="sendtx-preset" data-preset="unknown" type="button">
+        unknown selector
+      </button>
+      <!-- Phishing multicall — outer call looks like a benign Uniswap-
+           style batched op, inner bytes[] hides a max-uint approve to
+           an attacker address. SecurityChecks panel should surface a
+           red multicall-risk banner. -->
+      <button class="sendtx-preset" data-preset="multicall-phishing" type="button">
+        multicall w/ inner UNLIMITED approve
+      </button>
+    </div>
+    <label class="auth7702-row">
+      <span>to</span>
+      <input id="tx-to" type="text" placeholder="0x…" spellcheck="false" />
+    </label>
+    <label class="auth7702-row">
+      <span>data (hex)</span>
+      <input id="tx-data" type="text" placeholder="0x…" spellcheck="false" />
+    </label>
+    <label class="auth7702-row">
+      <span>value (hex)</span>
+      <input id="tx-value" type="text" placeholder="0x0" spellcheck="false" />
+    </label>
+    <button id="send-tx-multi" type="button">Send Transaction</button>
+  </div>
+
+  <h3>wallet_addEthereumChain (multi-scenario)</h3>
+  <!-- Each preset is a real public L2/L1 with its canonical RPC +
+       explorer. Preset chip fills the four inputs; user can tweak
+       chainId or rpcUrl to test edge cases before submitting. -->
+  <div class="auth7702">
+    <div class="auth7702-presets">
+      <button class="addchain-preset" data-preset="arbitrum" type="button">
+        Arbitrum One
+      </button>
+      <button class="addchain-preset" data-preset="polygon" type="button">
+        Polygon PoS
+      </button>
+      <button class="addchain-preset" data-preset="base" type="button">
+        Base
+      </button>
+      <button class="addchain-preset" data-preset="optimism" type="button">
+        OP Mainnet
+      </button>
+    </div>
+    <label class="auth7702-row">
+      <span>chainId (hex)</span>
+      <input id="chain-cid" type="text" placeholder="0xa4b1" spellcheck="false" />
+    </label>
+    <label class="auth7702-row">
+      <span>chainName</span>
+      <input id="chain-name" type="text" placeholder="Arbitrum One" spellcheck="false" />
+    </label>
+    <label class="auth7702-row">
+      <span>rpcUrl</span>
+      <input id="chain-rpc" type="text" placeholder="https://…" spellcheck="false" />
+    </label>
+    <label class="auth7702-row">
+      <span>explorer</span>
+      <input id="chain-explorer" type="text" placeholder="https://…" spellcheck="false" />
+    </label>
+    <button id="add-chain-multi" type="button">Add Ethereum Chain</button>
+  </div>
+
+  <h3>ERC-20 contract (multi-scenario)</h3>
+  <!-- One-stop flow for a fresh ERC-20: Deploy → Mint to me → Transfer /
+       Approve / wallet_watchAsset. Constructor args (name/symbol/decimals)
+       fill from the panel inputs at deploy time so each test gets a
+       distinct identity. Other actions are encoded popup-side here, the
+       wallet's signing UI is what's actually under test. -->
+  <div class="auth7702 nft-panel">
+    <div class="auth7702-presets">
+      <button class="erc20-preset" data-action="deploy-erc20" type="button">Deploy</button>
+      <button class="erc20-preset" data-action="mint-erc20" type="button">Mint 1000 to me</button>
+      <button class="erc20-preset" data-action="transfer-erc20" type="button">Transfer 10 → anvil#2</button>
+      <button class="erc20-preset" data-action="approve-erc20" type="button">Approve ∞ to attacker</button>
+      <button class="erc20-preset" data-action="watch-asset-erc20" type="button">wallet_watchAsset</button>
+    </div>
+    <label class="auth7702-row" data-field="action">
+      <span>action</span>
+      <input id="erc20-action" type="text" placeholder="(pick a preset)" readonly />
+    </label>
+    <label class="auth7702-row" data-field="contract">
+      <span>contract</span>
+      <input id="erc20-contract" type="text" placeholder="0x… (filled after Deploy)" spellcheck="false" />
+    </label>
+    <label class="auth7702-row" data-field="name">
+      <span>name</span>
+      <input id="erc20-name" type="text" placeholder="Test Token" spellcheck="false" />
+    </label>
+    <label class="auth7702-row" data-field="symbol">
+      <span>symbol</span>
+      <input id="erc20-symbol" type="text" placeholder="TST" spellcheck="false" />
+    </label>
+    <label class="auth7702-row" data-field="decimals">
+      <span>decimals</span>
+      <input id="erc20-decimals" type="text" placeholder="18" spellcheck="false" />
+    </label>
+    <label class="auth7702-row" data-field="amount">
+      <span>amount</span>
+      <input id="erc20-amount" type="text" placeholder="10" spellcheck="false" />
+    </label>
+    <label class="auth7702-row" data-field="recipient">
+      <span>recipient</span>
+      <input id="erc20-recipient" type="text" placeholder="0x70997…79C8 / spender" spellcheck="false" />
+    </label>
+    <button id="erc20-run" type="button">Run ERC-20 scenario</button>
+  </div>
+
+  <h3>NFT contracts (multi-scenario)</h3>
+  <!-- Two side-by-side panels: ERC-721 on the left, ERC-1155 on the
+       right. Same preset taxonomy in each (deploy / mint / transfer /
+       setApprovalForAll / watchAsset) — splitting by standard makes
+       it impossible to accidentally fire an ERC-721 op against the
+       ERC-1155 deploy. Bytecode comes from the fixture server's
+       /compile/erc{721,1155}?tokenURI=… endpoint. -->
+  <div class="nft-panels">
+    <div class="auth7702 nft-panel">
+      <h4 class="nft-panel-title">ERC-721</h4>
+      <div class="auth7702-presets">
+        <button class="nft-preset" data-action="deploy-erc721" type="button">Deploy</button>
+        <button class="nft-preset" data-action="mint-erc721" type="button">Mint #1 to me</button>
+        <button class="nft-preset" data-action="transfer-erc721" type="button">Transfer → anvil#2</button>
+        <button class="nft-preset" data-action="approve-erc721" type="button">setApprovalForAll (attacker)</button>
+        <button class="nft-preset" data-action="watch-asset-erc721" type="button">wallet_watchAsset</button>
+      </div>
+      <label class="auth7702-row" data-field="action">
+        <span>action</span>
+        <input id="nft721-action" type="text" placeholder="(pick a preset)" readonly />
+      </label>
+      <label class="auth7702-row" data-field="contract">
+        <span>contract</span>
+        <input id="nft721-contract" type="text" placeholder="0x… (filled after Deploy)" spellcheck="false" />
+      </label>
+      <label class="auth7702-row" data-field="tokenId">
+        <span>tokenId</span>
+        <input id="nft721-token-id" type="text" placeholder="1" spellcheck="false" />
+      </label>
+      <label class="auth7702-row" data-field="recipient">
+        <span>recipient</span>
+        <input id="nft721-recipient" type="text" placeholder="0x70997…79C8 / operator" spellcheck="false" />
+      </label>
+      <label class="auth7702-row" data-field="tokenURI">
+        <span>tokenURI</span>
+        <input id="nft721-token-uri" type="text" placeholder="data: / ipfs:// (Deploy)" spellcheck="false" />
+      </label>
+      <button id="nft721-run" type="button">Run ERC-721 scenario</button>
+    </div>
+
+    <div class="auth7702 nft-panel">
+      <h4 class="nft-panel-title">ERC-1155</h4>
+      <div class="auth7702-presets">
+        <button class="nft-preset" data-action="deploy-erc1155" type="button">Deploy</button>
+        <button class="nft-preset" data-action="mint-erc1155" type="button">Mint 5×#7 to me</button>
+        <button class="nft-preset" data-action="transfer-erc1155" type="button">Transfer 1×#7 → anvil#2</button>
+        <button class="nft-preset" data-action="approve-erc1155" type="button">setApprovalForAll (attacker)</button>
+        <button class="nft-preset" data-action="watch-asset-erc1155" type="button">wallet_watchAsset</button>
+      </div>
+      <label class="auth7702-row" data-field="action">
+        <span>action</span>
+        <input id="nft1155-action" type="text" placeholder="(pick a preset)" readonly />
+      </label>
+      <label class="auth7702-row" data-field="contract">
+        <span>contract</span>
+        <input id="nft1155-contract" type="text" placeholder="0x… (filled after Deploy)" spellcheck="false" />
+      </label>
+      <label class="auth7702-row" data-field="tokenId">
+        <span>tokenId</span>
+        <input id="nft1155-token-id" type="text" placeholder="7" spellcheck="false" />
+      </label>
+      <label class="auth7702-row" data-field="amount">
+        <span>amount</span>
+        <input id="nft1155-amount" type="text" placeholder="5" spellcheck="false" />
+      </label>
+      <label class="auth7702-row" data-field="recipient">
+        <span>recipient</span>
+        <input id="nft1155-recipient" type="text" placeholder="0x70997…79C8 / operator" spellcheck="false" />
+      </label>
+      <label class="auth7702-row" data-field="tokenURI">
+        <span>tokenURI</span>
+        <input id="nft1155-token-uri" type="text" placeholder="data: / ipfs:// (Deploy)" spellcheck="false" />
+      </label>
+      <button id="nft1155-run" type="button">Run ERC-1155 scenario</button>
+    </div>
+  </div>
+
+  <h3>EIP-7702 authorization (multi-scenario)</h3>
+  <div class="auth7702">
+    <div class="auth7702-presets">
+      <button class="auth7702-preset" data-preset="permit2-sepolia" type="button">
+        Permit2 / Sepolia (verified)
+      </button>
+      <button class="auth7702-preset" data-preset="permit2-mainnet" type="button">
+        Permit2 / mainnet (verified)
+      </button>
+      <button class="auth7702-preset" data-preset="mintdelegate" type="button">
+        Aladdin MintDelegate / mainnet (verified)
+      </button>
+      <button class="auth7702-preset" data-preset="unverified" type="button">
+        Random unverified / mainnet (gate BLOCKs)
+      </button>
+      <button class="auth7702-preset" data-preset="revoke" type="button">
+        Revoke (zero address)
+      </button>
+    </div>
+    <label class="auth7702-row">
+      <span>delegate</span>
+      <input id="auth-address" type="text" placeholder="0x…" spellcheck="false" />
+    </label>
+    <label class="auth7702-row">
+      <span>chainId (hex)</span>
+      <input id="auth-chain-id" type="text" placeholder="0xaa36a7" spellcheck="false" />
+    </label>
+    <label class="auth7702-row">
+      <span>nonce (hex)</span>
+      <input id="auth-nonce" type="text" placeholder="0x0" spellcheck="false" />
+    </label>
+    <button id="sign-authorization" type="button">Sign 7702 Authorization</button>
+  </div>
+
+  <!-- ERC-7715 scoped permission grant (wallet_grantPermissions).
+       Single button that issues ONE bounded session-grant request: a
+       concrete target contract + a mint/activate allow-list + a future
+       expiry. Mirrors the #sign-authorization handler's shape (fixed
+       params, one button, no presets). Drives grant-flow.e2e.ts through
+       the grant → review → revoke lifecycle. -->
+  <h3>ERC-7715 scoped permission (wallet_grantPermissions)</h3>
+  <div class="auth7702">
+    <button id="grant-permissions" type="button">Grant Permissions (mint / activate)</button>
+  </div>
+
+  <!-- Result + error panes float as a fixed sidebar on the right so
+       they're visible regardless of scroll position. Earlier they
+       lived at the bottom of the document, which meant clicking a
+       button up top sent the response off-screen on tall pages. -->
+  <aside class="result-panel">
+    <!-- Status trio — selected provider + connected account + chainId.
+         Lives at the top of the sidebar so the user always knows
+         WHICH wallet they're poking and WHAT chain they're on, no
+         matter how far down the page they've scrolled to find a
+         scenario panel. -->
+    <dl class="result-status">
+      <dt>chosen</dt>
+      <dd><code id="chosen-provider">none</code></dd>
+      <dt>account</dt>
+      <dd><code id="account">—</code></dd>
+      <dt>chainId</dt>
+      <dd><code id="chain-id">—</code></dd>
+    </dl>
+    <h3>last request</h3>
+    <pre id="request">(none)</pre>
+    <h3>last result</h3>
+    <pre id="result">(none)</pre>
+    <!-- Concatenated r||s||v hex form. Only populated by
+         wallet_signAuthorization — personal_sign / signTypedData_v4
+         already return that exact shape in #result. -->
+    <h3>last signature</h3>
+    <pre id="signature">(none)</pre>
+    <h3>last error</h3>
+    <pre id="error">(none)</pre>
+  </aside>
+
+<script>
+  // EIP-6963 wallet picker — listens for `eip6963:announceProvider`
+  // events and builds a per-detected-wallet list with a click handler
+  // that selects the active provider for all subsequent button calls.
+  // Auto-selects the first wallet to announce (so e2e + single-wallet
+  // manual flows don't require a click); user can re-pick to switch
+  // mid-session in multi-wallet setups.
+  //
+  // Falls back to `window.ethereum` legacy if no EIP-6963 provider
+  // announces within 1000 ms (some older / partial wallets only set
+  // the global). `window.aladdin` likewise — our own brand-specific
+  // global is always available even if EIP-6963 fires late.
+
+  const $ = (id) => document.getElementById(id);
+  const set = (id, v) => { $(id).textContent = typeof v === 'string' ? v : JSON.stringify(v, null, 2); };
+  const reset = () => {
+    set('request', '(none)'); set('result', '(none)');
+    set('signature', '(none)'); set('error', '(none)');
+  };
+
+  // Map of uuid → {info, provider} — EIP-6963 mandates `info.uuid` is
+  // stable per session per wallet.
+  const announced = new Map();
+  // Currently selected provider entry. Set by clicking a picker row.
+  let chosen = null;
+
+  function isLegacyEntry(entry) {
+    return entry?.info?.uuid?.startsWith('legacy:');
+  }
+
+  function chooseProvider(entry) {
+    chosen = entry;
+    set('chosen-provider', entry ? `${entry.info.name} (${entry.info.rdns ?? 'no-rdns'})` : 'none');
+    renderPicker();
+    refreshAccount();
+  }
+
+  function renderPicker() {
+    const el = $('provider-picker');
+    if (announced.size === 0) {
+      el.innerHTML = '<div class="picker-empty">no providers announced yet</div>';
+      return;
+    }
+    el.innerHTML = '';
+    for (const [uuid, entry] of announced) {
+      const btn = document.createElement('button');
+      btn.className = 'picker-row' + (chosen && chosen.info.uuid === uuid ? ' is-active' : '');
+      btn.setAttribute('data-uuid', uuid);
+      btn.setAttribute('data-rdns', entry.info.rdns ?? '');
+      btn.onclick = () => chooseProvider(entry);
+
+      if (entry.info.icon) {
+        const img = document.createElement('img');
+        img.src = entry.info.icon;
+        img.alt = '';
+        btn.appendChild(img);
+      }
+      const meta = document.createElement('div');
+      meta.className = 'meta';
+      const name = document.createElement('div');
+      name.className = 'name';
+      name.textContent = entry.info.name ?? '(no name)';
+      const sub = document.createElement('div');
+      sub.className = 'sub';
+      sub.textContent = entry.info.rdns ?? entry.info.uuid;
+      meta.appendChild(name);
+      meta.appendChild(sub);
+      btn.appendChild(meta);
+
+      if (isLegacyEntry(entry)) {
+        const tag = document.createElement('span');
+        tag.className = 'tag';
+        tag.textContent = 'legacy';
+        btn.appendChild(tag);
+      }
+      el.appendChild(btn);
+    }
+  }
+
+  // EIP-6963 listener: any wallet announcing itself populates the
+  // picker. Dedupe by uuid so re-announce events don't double-add.
+  window.addEventListener('eip6963:announceProvider', (event) => {
+    const detail = event.detail;
+    if (!detail?.info?.uuid) return;
+    if (announced.has(detail.info.uuid)) return;
+    announced.set(detail.info.uuid, detail);
+    if (!chosen) chooseProvider(detail);
+    else renderPicker();
+  });
+
+  // Ask the world. Wallets that follow EIP-6963 respond with
+  // `eip6963:announceProvider`. Some wallets only announce on this
+  // request, others also re-announce on initial inject — covers both.
+  window.dispatchEvent(new Event('eip6963:requestProvider'));
+
+  // Legacy fallback — if a wallet only sets window.ethereum or
+  // window.aladdin without EIP-6963 announcement, add it to the
+  // picker after a short delay (1 s). Tagged "legacy" so users
+  // know it's the global-pollution path, not the standard one.
+  setTimeout(() => {
+    if (window.aladdin && !Array.from(announced.values()).some((e) => e.provider === window.aladdin)) {
+      const entry = {
+        info: { uuid: 'legacy:aladdin', name: 'Aladdin (window.aladdin)', rdns: 'wallet.aladdin' },
+        provider: window.aladdin,
+      };
+      announced.set(entry.info.uuid, entry);
+      if (!chosen) chooseProvider(entry);
+      else renderPicker();
+    }
+    if (window.ethereum && !Array.from(announced.values()).some((e) => e.provider === window.ethereum)) {
+      const entry = {
+        info: {
+          uuid: 'legacy:ethereum',
+          name: window.ethereum.isMetaMask ? 'MetaMask (window.ethereum)' : 'window.ethereum',
+          rdns: 'legacy.ethereum',
+        },
+        provider: window.ethereum,
+      };
+      announced.set(entry.info.uuid, entry);
+      if (!chosen) chooseProvider(entry);
+      else renderPicker();
+    }
+  }, 1000);
+
+  function provider() {
+    return chosen?.provider;
+  }
+
+  async function call(method, params) {
+    reset();
+    set('request', { method, params });
+    const p = provider();
+    if (!p) { set('error', 'no provider chosen'); throw new Error('no provider'); }
+    try {
+      const result = await p.request({ method, params });
+      set('result', result);
+      return result;
+    } catch (e) {
+      set('error', { method, code: e.code, message: e.message });
+      throw e;
+    }
+  }
+
+  async function refreshAccount() {
+    const p = provider();
+    if (!p) { $('account').textContent = '—'; $('chain-id').textContent = '—'; return; }
+    try {
+      const accs = await p.request({ method: 'eth_accounts', params: [] });
+      $('account').textContent = accs[0] || '—';
+    } catch { $('account').textContent = '—'; }
+    try {
+      const cid = await p.request({ method: 'eth_chainId', params: [] });
+      $('chain-id').textContent = cid;
+    } catch { $('chain-id').textContent = '—'; }
+  }
+  setInterval(refreshAccount, 1000);
+
+  $('connect').onclick = async () => {
+    await call('eth_requestAccounts', []);
+    refreshAccount();
+  };
+
+  $('personal-sign').onclick = async () => {
+    const account = (await provider().request({ method: 'eth_accounts', params: [] }))[0];
+    const msg = '0x' + Array.from(new TextEncoder().encode('Hello from aladdin-wallet e2e!')).map(b => b.toString(16).padStart(2, '0')).join('');
+    await call('personal_sign', [msg, account]);
+  };
+
+  $('sign-typed-data-v4').onclick = async () => {
+    const account = (await provider().request({ method: 'eth_accounts', params: [] }))[0];
+    const typedData = {
+      types: {
+        EIP712Domain: [
+          { name: 'name', type: 'string' },
+          { name: 'version', type: 'string' },
+          { name: 'chainId', type: 'uint256' },
+          { name: 'verifyingContract', type: 'address' },
+        ],
+        Permit: [
+          { name: 'owner', type: 'address' },
+          { name: 'spender', type: 'address' },
+          { name: 'value', type: 'uint256' },
+          { name: 'nonce', type: 'uint256' },
+          { name: 'deadline', type: 'uint256' },
+        ],
+      },
+      primaryType: 'Permit',
+      domain: {
+        name: 'USD Coin',
+        version: '2',
+        chainId: 1,
+        verifyingContract: '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48',
+      },
+      message: {
+        owner: account,
+        spender: '0xE592427A0AEce92De3Edee1F18E0157C05861564',
+        value: '1000000',
+        nonce: 0,
+        deadline: Math.floor(Date.now() / 1000) + 3600,
+      },
+    };
+    await call('eth_signTypedData_v4', [account, JSON.stringify(typedData)]);
+  };
+
+  // ── NFT deploy helpers ──────────────────────────────────────────
+  // Compile bytecode comes from the fixture server's
+  // /compile/erc{721,1155}?tokenURI=… endpoint. The server runs
+  // solc-js + encodeDeployData so the returned `bytecode` already
+  // includes the constructor arg — dapp just eth_sendTransaction
+  // it directly.
+
+  // Encode function call: returns 0x + selector + abi-encoded args.
+  // We hand-encode the simple shapes (mint takes address + uint256
+  // [+ uint256 for 1155]) to avoid pulling ethers/viem into the
+  // browser dapp. The wallet doesn't see our encoder — it just
+  // receives raw calldata via eth_sendTransaction.
+  function selector(sig) {
+    // keccak256(sig) first 4 bytes — hard-coded so the browser-side
+    // dapp doesn't need a hash library. Each entry verified against
+    // viem's `toFunctionSelector` once at write time.
+    const map = {
+      'mint(address,uint256)':                                   '0x40c10f19',
+      'mint(address,uint256,uint256)':                           '0x156e29f6',
+      'safeTransferFrom(address,address,uint256)':               '0x42842e0e',
+      'safeTransferFrom(address,address,uint256,uint256,bytes)': '0xf242432a',
+      'setApprovalForAll(address,bool)':                         '0xa22cb465',
+    };
+    if (!(sig in map)) throw new Error('unknown selector: ' + sig);
+    return map[sig];
+  }
+  function padHex(value, byteWidth /* default 32 */) {
+    const hex = (typeof value === 'bigint'
+      ? value.toString(16)
+      : value.toString().startsWith('0x')
+        ? value.toString().slice(2)
+        : BigInt(value).toString(16)).toLowerCase();
+    return hex.padStart((byteWidth ?? 32) * 2, '0');
+  }
+  function padAddr(addr) {
+    return '0'.repeat(24) + addr.toLowerCase().replace(/^0x/, '');
+  }
+
+  // ── NFT multi-scenario harness ─────────────────────────────────
+  // Two side-by-side panels (ERC-721 / ERC-1155), one preset taxonomy
+  // per standard (deploy / mint / transfer / approve / watchAsset).
+  // Splitting by standard means a preset can't ambiguously target
+  // the wrong contract — each panel only knows about its own deploy.
+  // Anvil account #2 is the default transfer recipient (deterministic
+  // from the canonical mnemonic, pre-funded with 10000 ETH).
+  const ANVIL_RECIPIENT = '0x70997970C51812dc3A010C7d01b50e0d17dc79C8';
+  const FAKE_ATTACKER   = '0x9aBaDcAFEDEAd000000000000000000000000bAd';
+  const nftDeployments = { erc721: null, erc1155: null };
+
+  // Pre-baked tokenURI default — embedded JSON with the wallet's
+  // brand pile glyph as an SVG on a TRANSPARENT background. Same
+  // bytes the anvil-side helpers ship as `DEFAULT_TEST_TOKEN_URI`.
+  // Self-contained data URI, no external dep. User can overwrite
+  // the field with ipfs://… / https://… / a different data URI
+  // before clicking Deploy.
+  const DEFAULT_TOKEN_URI =
+    'data:application/json;base64,eyJuYW1lIjoiU2hpdCBQaWxlIFRlc3QiLCJkZXNjcmlwdGlvbiI6IlRlc3QgTkZUIGZvciB3YWxsZXQgZTJlIOKAlCBlbWJlZGRlZCBTVkcsIG5vIElQRlMuIiwiaW1hZ2UiOiJkYXRhOmltYWdlL3N2Zyt4bWw7YmFzZTY0LFBITjJaeUI0Yld4dWN6MGlhSFIwY0RvdkwzZDNkeTUzTXk1dmNtY3ZNakF3TUM5emRtY2lJSFpwWlhkQ2IzZzlJakFnTUNBeE1qZ2dNVEk0SWo0OFp5QjBjbUZ1YzJadmNtMDlJblJ5WVc1emJHRjBaU2cwSURrcElqNDhjR0YwYUNCa1BTSk5JREU0SURFd01DQlJJREU0SURnNExDQXpNQ0E0TmlCUklESTRJRGN5TENBME5DQTJPQ0JSSURReUlEVTBMQ0EyTUNBMU1DQlJJRFU0SURNMkxDQTNOaUF6TkNCUklEYzBJREl5TENBNE9DQXlNaUJSSURreUlESXlMQ0E1TUNBeU9DQlJJRGsySURJMkxDQTVOaUF6TmlCUklERXdNaUEwTUN3Z09UWWdORGdnVVNBeE1ESWdOVFlzSURreUlEWXdJRkVnTVRBd0lEWTRMQ0E0TmlBM01pQlJJRGswSURneUxDQTNPQ0E0TkNCUklEZzBJRGsyTENBMk5pQTVOaUJSSURjd0lERXdOQ3dnTlRRZ01UQXlJRXdnTWpJZ01UQXlJRm9pSUdacGJHdzlJaU00UWpaQ00wRWlJSE4wY205clpUMGlJekF3TUNJZ2MzUnliMnRsTFhkcFpIUm9QU0kxSWlCemRISnZhMlV0YkdsdVpXcHZhVzQ5SW5KdmRXNWtJaTgrUEdOcGNtTnNaU0JqZUQwaU56Z2lJR041UFNJME5DSWdjajBpTXk0MUlpQm1hV3hzUFNJak1EQXdJaTgrUEdOcGNtTnNaU0JqZUQwaU9UQWlJR041UFNJME5DSWdjajBpTXk0MUlpQm1hV3hzUFNJak1EQXdJaTgrUEdOcGNtTnNaU0JqZUQwaU56Z3VOeUlnWTNrOUlqUXpMakVpSUhJOUlqRXVNaUlnWm1sc2JEMGlJMlptWmlJdlBqeGphWEpqYkdVZ1kzZzlJamt3TGpjaUlHTjVQU0kwTXk0eElpQnlQU0l4TGpJaUlHWnBiR3c5SWlObVptWWlMejQ4Y0dGMGFDQmtQU0pOSURjMklEVTJJRkVnT0RRZ05qSXNJRGsySURVMklpQm1hV3hzUFNKdWIyNWxJaUJ6ZEhKdmEyVTlJaU13TURBaUlITjBjbTlyWlMxM2FXUjBhRDBpTXlJZ2MzUnliMnRsTFd4cGJtVmpZWEE5SW5KdmRXNWtJaTgrUEM5blBqd3ZjM1puUGc9PSJ9';
+
+  // Per-standard preset shapes. ERC-721 lacks `amount`; ERC-1155
+  // carries one. tokenURI is only meaningful for `deploy` — other
+  // presets clear it explicitly so the user sees the field doesn't
+  // affect non-deploy actions.
+  const erc721Presets = {
+    'deploy-erc721':      { contract: '',     tokenId: '',  recipient: '',              tokenURI: 'default' },
+    'mint-erc721':        { contract: 'last', tokenId: '1', recipient: '',              tokenURI: '' },
+    'transfer-erc721':    { contract: 'last', tokenId: '1', recipient: ANVIL_RECIPIENT, tokenURI: '' },
+    'approve-erc721':     { contract: 'last', tokenId: '',  recipient: FAKE_ATTACKER,   tokenURI: '' },
+    'watch-asset-erc721': { contract: 'last', tokenId: '1', recipient: '',              tokenURI: '' },
+  };
+  const erc1155Presets = {
+    'deploy-erc1155':      { contract: '',     tokenId: '',  amount: '',  recipient: '',              tokenURI: 'default' },
+    'mint-erc1155':        { contract: 'last', tokenId: '7', amount: '5', recipient: '',              tokenURI: '' },
+    'transfer-erc1155':    { contract: 'last', tokenId: '7', amount: '1', recipient: ANVIL_RECIPIENT, tokenURI: '' },
+    'approve-erc1155':     { contract: 'last', tokenId: '',  amount: '',  recipient: FAKE_ATTACKER,   tokenURI: '' },
+    'watch-asset-erc1155': { contract: 'last', tokenId: '7', amount: '',  recipient: '',              tokenURI: '' },
+  };
+  const PANEL_CONFIG = {
+    erc721:  { presets: erc721Presets,  prefix: 'nft721',  hasAmount: false },
+    erc1155: { presets: erc1155Presets, prefix: 'nft1155', hasAmount: true  },
+  };
+  // Inputs each action actually USES — every other row is hidden
+  // when that action is selected so the form doesn't suggest fields
+  // that the run handler will ignore. `action` is informational and
+  // always visible; `contract` is required by every non-noop action.
+  const VISIBLE_FIELDS = {
+    'deploy-erc721':       ['action', 'contract', 'tokenURI'],
+    'mint-erc721':         ['action', 'contract', 'tokenId'],
+    'transfer-erc721':     ['action', 'contract', 'tokenId', 'recipient'],
+    'approve-erc721':      ['action', 'contract', 'recipient'],
+    'watch-asset-erc721':  ['action', 'contract', 'tokenId'],
+    'deploy-erc1155':      ['action', 'contract', 'tokenURI'],
+    'mint-erc1155':        ['action', 'contract', 'tokenId', 'amount'],
+    'transfer-erc1155':    ['action', 'contract', 'tokenId', 'amount', 'recipient'],
+    'approve-erc1155':     ['action', 'contract', 'recipient'],
+    'watch-asset-erc1155': ['action', 'contract', 'tokenId'],
+  };
+  function standardFromAction(action) {
+    return action.endsWith('1155') ? 'erc1155' : 'erc721';
+  }
+  function applyPreset(std, action) {
+    const cfg = PANEL_CONFIG[std];
+    const p = cfg.presets[action];
+    if (!p) return;
+    const pfx = cfg.prefix;
+    $(`${pfx}-action`).value = action;
+    $(`${pfx}-contract`).value = p.contract === 'last' ? (nftDeployments[std] ?? '') : p.contract;
+    $(`${pfx}-token-id`).value = p.tokenId;
+    if (cfg.hasAmount) $(`${pfx}-amount`).value = p.amount;
+    $(`${pfx}-recipient`).value = p.recipient;
+    $(`${pfx}-token-uri`).value = p.tokenURI === 'default' ? DEFAULT_TOKEN_URI : p.tokenURI;
+    const panel = $(`${pfx}-run`).closest('.nft-panel');
+    // Toggle preset-chip active state — panel-local, doesn't bleed
+    // into the other standard's chips.
+    for (const btn of panel.querySelectorAll('.nft-preset')) {
+      btn.classList.toggle('is-active', btn.dataset.action === action);
+    }
+    // Show only the rows the chosen action consumes. Hidden rows are
+    // CSS-only (display:none) — values stay in the inputs so a quick
+    // re-pick doesn't lose what the user typed.
+    const visible = new Set(VISIBLE_FIELDS[action] ?? []);
+    for (const row of panel.querySelectorAll('.auth7702-row')) {
+      const f = row.dataset.field;
+      row.style.display = (!f || visible.has(f)) ? '' : 'none';
+    }
+  }
+  for (const btn of document.querySelectorAll('.nft-preset')) {
+    btn.onclick = () => applyPreset(standardFromAction(btn.dataset.action), btn.dataset.action);
+  }
+
+  async function runNftScenario(std) {
+    reset();
+    const p = provider();
+    if (!p) { set('error', 'no provider chosen'); return; }
+    const cfg = PANEL_CONFIG[std];
+    const pfx = cfg.prefix;
+    const action = $(`${pfx}-action`).value;
+    if (!action) { set('error', 'pick a preset first'); return; }
+    const contractField = $(`${pfx}-contract`).value.trim();
+    const tokenId = $(`${pfx}-token-id`).value.trim();
+    const amount = cfg.hasAmount ? $(`${pfx}-amount`).value.trim() : '';
+    const recipient = $(`${pfx}-recipient`).value.trim();
+
+    try {
+      const me = (await p.request({ method: 'eth_accounts', params: [] }))[0];
+
+      // ── Deploy ────────────────────────────────────────────────
+      if (action.startsWith('deploy-')) {
+        const kind = std === 'erc721' ? '721' : '1155';
+        const tokenURI = $(`${pfx}-token-uri`).value;
+        const compileUrl = `/compile/erc${kind}?tokenURI=${encodeURIComponent(tokenURI)}`;
+        const r = await fetch(compileUrl);
+        if (!r.ok) throw new Error(`compile fetch failed: ${r.status}`);
+        const { bytecode } = await r.json();
+        set('result', { stage: `deploying ERC-${kind}…`, tokenURI: tokenURI || '(empty)' });
+        const deployHash = await p.request({
+          method: 'eth_sendTransaction',
+          params: [{ from: me, data: bytecode }],
+        });
+        const contractAddr = await waitForContract(p, deployHash);
+        nftDeployments[std] = contractAddr;
+        $(`${pfx}-contract`).value = contractAddr;
+        set('result', {
+          action,
+          deployed: contractAddr,
+          standard: `ERC-${kind}`,
+          nextStep: 'pick Mint / Transfer / Approve / watchAsset preset and Run',
+        });
+        return;
+      }
+
+      // All non-deploy actions need a contract.
+      if (!contractField) { set('error', 'contract address required — Deploy first or paste'); return; }
+
+      // ── wallet_watchAsset (EIP-747 NFT) ───────────────────────
+      if (action.startsWith('watch-asset-')) {
+        if (!tokenId) { set('error', 'tokenId required for wallet_watchAsset'); return; }
+        const type = std === 'erc721' ? 'ERC721' : 'ERC1155';
+        await call('wallet_watchAsset', {
+          type,
+          options: { address: contractField, tokenId },
+        });
+        return;
+      }
+
+      // ── Mint ──────────────────────────────────────────────────
+      if (action === 'mint-erc721') {
+        const data = selector('mint(address,uint256)') + padAddr(me) + padHex(BigInt(tokenId));
+        const hash = await p.request({
+          method: 'eth_sendTransaction',
+          params: [{ from: me, to: contractField, data }],
+        });
+        const r = await waitForReceipt(p, hash);
+        set('result', { action, contract: contractField, tokenId, txHash: hash, status: r.status });
+        return;
+      }
+      if (action === 'mint-erc1155') {
+        const data =
+          selector('mint(address,uint256,uint256)') +
+          padAddr(me) + padHex(BigInt(tokenId)) + padHex(BigInt(amount));
+        const hash = await p.request({
+          method: 'eth_sendTransaction',
+          params: [{ from: me, to: contractField, data }],
+        });
+        const r = await waitForReceipt(p, hash);
+        set('result', { action, contract: contractField, tokenId, amount, txHash: hash, status: r.status });
+        return;
+      }
+
+      // ── Transfer ──────────────────────────────────────────────
+      if (action === 'transfer-erc721') {
+        if (!recipient) { set('error', 'recipient required'); return; }
+        const data =
+          selector('safeTransferFrom(address,address,uint256)') +
+          padAddr(me) + padAddr(recipient) + padHex(BigInt(tokenId));
+        const hash = await p.request({
+          method: 'eth_sendTransaction',
+          params: [{ from: me, to: contractField, data }],
+        });
+        const r = await waitForReceipt(p, hash);
+        set('result', { action, contract: contractField, tokenId, to: recipient, txHash: hash, status: r.status });
+        return;
+      }
+      if (action === 'transfer-erc1155') {
+        if (!recipient) { set('error', 'recipient required'); return; }
+        // safeTransferFrom(from, to, id, amount, bytes data). Empty
+        // data: offset 0xa0 + length 0.
+        const data =
+          selector('safeTransferFrom(address,address,uint256,uint256,bytes)') +
+          padAddr(me) + padAddr(recipient) +
+          padHex(BigInt(tokenId)) + padHex(BigInt(amount)) +
+          padHex(0xa0n) + padHex(0n);
+        const hash = await p.request({
+          method: 'eth_sendTransaction',
+          params: [{ from: me, to: contractField, data }],
+        });
+        const r = await waitForReceipt(p, hash);
+        set('result', { action, contract: contractField, tokenId, amount, to: recipient, txHash: hash, status: r.status });
+        return;
+      }
+
+      // ── setApprovalForAll ─────────────────────────────────────
+      if (action.startsWith('approve-')) {
+        if (!recipient) { set('error', 'operator (recipient field) required'); return; }
+        const data =
+          selector('setApprovalForAll(address,bool)') +
+          padAddr(recipient) + padHex(1n);
+        const hash = await p.request({
+          method: 'eth_sendTransaction',
+          params: [{ from: me, to: contractField, data }],
+        });
+        const r = await waitForReceipt(p, hash);
+        set('result', { action, contract: contractField, operator: recipient, approved: true, txHash: hash, status: r.status });
+        return;
+      }
+
+      set('error', `unknown action: ${action}`);
+    } catch (e) {
+      set('error', { stage: action, message: e?.message ?? String(e) });
+    }
+  }
+  $('nft721-run').onclick  = () => runNftScenario('erc721');
+  $('nft1155-run').onclick = () => runNftScenario('erc1155');
+
+  // Default preset per panel — Deploy. Each panel is independent so
+  // clicking through the chips on one doesn't blow away the other.
+  applyPreset('erc721',  'deploy-erc721');
+  applyPreset('erc1155', 'deploy-erc1155');
+
+  // ── ERC-20 multi-scenario harness ──────────────────────────────
+  // Mirrors the NFT panel taxonomy: deploy / mint / transfer /
+  // approve / watchAsset. Constructor args (name/symbol/decimals)
+  // are panel inputs so every Deploy can have a distinct identity.
+  // Compile + bytecode-with-args lives behind the fixture server's
+  // /compile/erc20?name=&symbol=&decimals= endpoint.
+  let erc20Deployment = null;
+  const erc20Presets = {
+    'deploy-erc20':      { contract: '',     name: 'Test Token',  symbol: 'TST', decimals: '18', amount: '',     recipient: '' },
+    'mint-erc20':        { contract: 'last', name: '',            symbol: '',    decimals: '',   amount: '1000', recipient: '' },
+    'transfer-erc20':    { contract: 'last', name: '',            symbol: '',    decimals: '',   amount: '10',   recipient: ANVIL_RECIPIENT },
+    'approve-erc20':     { contract: 'last', name: '',            symbol: '',    decimals: '',   amount: 'max',  recipient: FAKE_ATTACKER },
+    'watch-asset-erc20': { contract: 'last', name: '',            symbol: '',    decimals: '',   amount: '',     recipient: '' },
+  };
+  const ERC20_VISIBLE_FIELDS = {
+    'deploy-erc20':      ['action', 'name', 'symbol', 'decimals'],
+    'mint-erc20':        ['action', 'contract', 'amount'],
+    'transfer-erc20':    ['action', 'contract', 'amount', 'recipient'],
+    'approve-erc20':     ['action', 'contract', 'amount', 'recipient'],
+    'watch-asset-erc20': ['action', 'contract'],
+  };
+  function applyErc20Preset(action) {
+    const p = erc20Presets[action];
+    if (!p) return;
+    $('erc20-action').value = action;
+    $('erc20-contract').value = p.contract === 'last' ? (erc20Deployment ?? '') : p.contract;
+    $('erc20-name').value = p.name;
+    $('erc20-symbol').value = p.symbol;
+    $('erc20-decimals').value = p.decimals;
+    $('erc20-amount').value = p.amount;
+    $('erc20-recipient').value = p.recipient;
+    for (const btn of document.querySelectorAll('.erc20-preset')) {
+      btn.classList.toggle('is-active', btn.dataset.action === action);
+    }
+    const visible = new Set(ERC20_VISIBLE_FIELDS[action] ?? []);
+    const panel = $('erc20-run').closest('.nft-panel');
+    for (const row of panel.querySelectorAll('.auth7702-row')) {
+      const f = row.dataset.field;
+      row.style.display = (!f || visible.has(f)) ? '' : 'none';
+    }
+  }
+  for (const btn of document.querySelectorAll('.erc20-preset')) {
+    btn.onclick = () => applyErc20Preset(btn.dataset.action);
+  }
+
+  /** Convert a decimal amount + decimals into uint256 base units.
+   *  `'max'` returns 2^256 − 1 (used by the unlimited-approve preset). */
+  function toUnits(amount, decimals) {
+    if (amount === 'max') return (1n << 256n) - 1n;
+    const s = String(amount).trim();
+    if (!/^\d+(\.\d+)?$/.test(s)) throw new Error(`bad amount: "${amount}"`);
+    const [whole, frac = ''] = s.split('.');
+    const d = Number(decimals || 0);
+    const padded = (frac + '0'.repeat(d)).slice(0, d);
+    return BigInt(whole) * (10n ** BigInt(d)) + BigInt(padded || '0');
+  }
+
+  $('erc20-run').onclick = async () => {
+    reset();
+    const p = provider();
+    if (!p) { set('error', 'no provider chosen'); return; }
+    const action = $('erc20-action').value;
+    if (!action) { set('error', 'pick a preset first'); return; }
+    const contractField = $('erc20-contract').value.trim();
+    const amount = $('erc20-amount').value.trim();
+    const recipient = $('erc20-recipient').value.trim();
+
+    try {
+      const me = (await p.request({ method: 'eth_accounts', params: [] }))[0];
+
+      // ── Deploy ────────────────────────────────────────────────
+      if (action === 'deploy-erc20') {
+        const name = $('erc20-name').value || 'Test Token';
+        const symbol = $('erc20-symbol').value || 'TST';
+        const decimals = $('erc20-decimals').value || '18';
+        const compileUrl = `/compile/erc20?name=${encodeURIComponent(name)}&symbol=${encodeURIComponent(symbol)}&decimals=${encodeURIComponent(decimals)}`;
+        const r = await fetch(compileUrl);
+        if (!r.ok) throw new Error(`compile fetch failed: ${r.status}`);
+        const { bytecode } = await r.json();
+        set('result', { stage: 'deploying ERC-20…', name, symbol, decimals });
+        const deployHash = await p.request({
+          method: 'eth_sendTransaction',
+          params: [{ from: me, data: bytecode }],
+        });
+        const contractAddr = await waitForContract(p, deployHash);
+        erc20Deployment = contractAddr;
+        $('erc20-contract').value = contractAddr;
+        set('result', {
+          action, deployed: contractAddr, name, symbol, decimals,
+          nextStep: 'pick Mint / Transfer / Approve / watchAsset preset and Run',
+        });
+        return;
+      }
+
+      // Non-deploy actions need a contract address.
+      if (!contractField) { set('error', 'contract address required — Deploy first or paste'); return; }
+
+      // For mint/transfer/approve we need the token's decimals so the
+      // human-typed amount converts to uint256 correctly. Read on
+      // demand — the deploy preset path also fills `erc20-decimals`
+      // for subsequent presets, but a fresh paste of a contract addr
+      // needs a live read.
+      let dec = Number($('erc20-decimals').value);
+      if (!Number.isFinite(dec) || dec < 0) {
+        const dHex = await p.request({
+          method: 'eth_call',
+          params: [{ to: contractField, data: '0x313ce567' }, 'latest'],  // decimals()
+        });
+        dec = parseInt(dHex, 16);
+        if (!Number.isFinite(dec)) dec = 18;
+        $('erc20-decimals').value = String(dec);
+      }
+
+      // ── watchAsset ─────────────────────────────────────────────
+      if (action === 'watch-asset-erc20') {
+        // EIP-747 ERC-20: needs symbol + decimals. We read them
+        // on-chain so the dapp matches what the wallet will fetch.
+        await call('wallet_watchAsset', {
+          type: 'ERC20',
+          options: { address: contractField, symbol: $('erc20-symbol').value || 'TST', decimals: dec },
+        });
+        return;
+      }
+
+      // ── Mint ──────────────────────────────────────────────────
+      if (action === 'mint-erc20') {
+        const units = toUnits(amount || '0', dec);
+        const data = selector('mint(address,uint256)') + padAddr(me) + padHex(units);
+        const hash = await p.request({
+          method: 'eth_sendTransaction',
+          params: [{ from: me, to: contractField, data }],
+        });
+        const r = await waitForReceipt(p, hash);
+        set('result', { action, contract: contractField, amount, txHash: hash, status: r.status });
+        return;
+      }
+
+      // ── Transfer ──────────────────────────────────────────────
+      if (action === 'transfer-erc20') {
+        if (!recipient) { set('error', 'recipient required'); return; }
+        const units = toUnits(amount || '0', dec);
+        // transfer(address,uint256) selector = 0xa9059cbb. Not in our
+        // shared selector map (NFT-only); inline the literal here.
+        const data = '0xa9059cbb' + padAddr(recipient) + padHex(units);
+        const hash = await p.request({
+          method: 'eth_sendTransaction',
+          params: [{ from: me, to: contractField, data }],
+        });
+        const r = await waitForReceipt(p, hash);
+        set('result', { action, contract: contractField, to: recipient, amount, txHash: hash, status: r.status });
+        return;
+      }
+
+      // ── Approve ───────────────────────────────────────────────
+      if (action === 'approve-erc20') {
+        if (!recipient) { set('error', 'spender (recipient field) required'); return; }
+        const units = toUnits(amount || '0', dec);
+        // approve(address,uint256) selector = 0x095ea7b3.
+        const data = '0x095ea7b3' + padAddr(recipient) + padHex(units);
+        const hash = await p.request({
+          method: 'eth_sendTransaction',
+          params: [{ from: me, to: contractField, data }],
+        });
+        const r = await waitForReceipt(p, hash);
+        set('result', { action, contract: contractField, spender: recipient, amount, txHash: hash, status: r.status });
+        return;
+      }
+
+      set('error', `unknown action: ${action}`);
+    } catch (e) {
+      set('error', { stage: action, message: e?.message ?? String(e) });
+    }
+  };
+  applyErc20Preset('deploy-erc20');
+
+  // Poll eth_getTransactionReceipt until non-null. Times out at 60 s.
+  async function waitForReceipt(p, hash) {
+    const deadline = Date.now() + 60_000;
+    while (Date.now() < deadline) {
+      const r = await p.request({ method: 'eth_getTransactionReceipt', params: [hash] });
+      if (r) return r;
+      await new Promise((r2) => setTimeout(r2, 500));
+    }
+    throw new Error('receipt timeout');
+  }
+  async function waitForContract(p, deployHash) {
+    const r = await waitForReceipt(p, deployHash);
+    if (!r.contractAddress) throw new Error('deploy produced no contractAddress');
+    return r.contractAddress;
+  }
+
+  $('eth-sign-deprecated').onclick = async () => {
+    // Deprecated method — wallet rejects upstream with code 4200,
+    // no popup. We catch and swallow the throw so the page result/
+    // error panel shows what the wallet returned.
+    const account = (await provider().request({ method: 'eth_accounts', params: [] }))[0];
+    try {
+      await call('eth_sign', [account, '0x' + '11'.repeat(32)]);
+    } catch { /* expected — error already in #error pane */ }
+  };
+
+  $('send-tx').onclick = async () => {
+    const account = (await provider().request({ method: 'eth_accounts', params: [] }))[0];
+    await call('eth_sendTransaction', [{
+      from: account,
+      to: '0x0000000000000000000000000000000000001234',
+      value: '0x2386f26fc10000',
+    }]);
+  };
+
+  // ── eth_sendTransaction multi-scenario harness ───────────────────
+  // Same UX pattern as the EIP-7702 panel: preset chip fills the
+  // to/data/value inputs, user can tweak before clicking Send.
+  // Each preset exercises a different decoder branch:
+  //   approve            → COMMON_TX_ABI (canonical ERC-20)
+  //   set-approval-all   → SELECTOR_TABLE_ABI / ERC-721 entry
+  //   claim              → SELECTOR_TABLE_ABI / common-patterns entry
+  //   unknown            → fallback path (raw selector display)
+  const sendTxPresets = {
+    'approve': {
+      // approve(spender, max uint256) on USDC mainnet
+      to:    '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48',
+      data:  '0x095ea7b3' +
+             '000000000000000000000000E592427A0AEce92De3Edee1F18E0157C05861564'.toLowerCase() +
+             'f'.repeat(64),
+      value: '0x0',
+    },
+    'set-approval-all': {
+      // setApprovalForAll(operator=OpenSea conduit, approved=true) on
+      // BAYC contract (the address itself doesn't have to be a real
+      // ERC-721 — we're testing decoder, not chain state).
+      to:    '0xBC4CA0EdA7647A8aB7C2061c2E118A18a936f13D',
+      data:  '0xa22cb465' +
+             '0000000000000000000000001E0049783F008A0085193E00003D00cd54003c71'.toLowerCase() +
+             '0000000000000000000000000000000000000000000000000000000000000001',
+      value: '0x0',
+    },
+    'claim': {
+      // claim() — no args.
+      to:    '0x0000000000000000000000000000000000005678',
+      data:  '0x4e71d92d',
+      value: '0x0',
+    },
+    'unknown': {
+      // 0xdeadbeef — not in any bundled table. Sign-confirm should
+      // show this verbatim in the `function:` kv row.
+      to:    '0x0000000000000000000000000000000000009abc',
+      data:  '0xdeadbeef00000000',
+      value: '0x0',
+    },
+    'multicall-phishing': {
+      // multicall([approve(attacker, max uint256)]). Outer call
+      // selector ac9650d8 → decoder labels it `fn: multicall`. The
+      // wallet's multicall-risk engine rule recursively decodes the
+      // bytes[] and surfaces the inner UNLIMITED approve as a red
+      // SecurityChecks banner.
+      to:    '0x0000000000000000000000000000000000fa11ed',
+      data:  '0xac9650d80000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000044095ea7b30000000000000000000000002222222222222222222222222222222222222222ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff00000000000000000000000000000000000000000000000000000000',
+      value: '0x0',
+    },
+  };
+
+  function applySendTxPreset(key) {
+    const p = sendTxPresets[key];
+    if (!p) return;
+    $('tx-to').value = p.to;
+    $('tx-data').value = p.data;
+    $('tx-value').value = p.value;
+    for (const btn of document.querySelectorAll('.sendtx-preset')) {
+      btn.classList.toggle('is-active', btn.dataset.preset === key);
+    }
+  }
+
+  for (const btn of document.querySelectorAll('.sendtx-preset')) {
+    btn.onclick = () => applySendTxPreset(btn.dataset.preset);
+  }
+
+  // Default preset = approve, so a blind click on Send Transaction
+  // still demonstrates the COMMON_TX_ABI decoder.
+  applySendTxPreset('approve');
+
+  $('send-tx-multi').onclick = async () => {
+    const account = (await provider().request({ method: 'eth_accounts', params: [] }))[0];
+    await call('eth_sendTransaction', [{
+      from:  account,
+      to:    $('tx-to').value.trim(),
+      data:  $('tx-data').value.trim(),
+      value: $('tx-value').value.trim() || '0x0',
+    }]);
+  };
+
+  // ── wallet_addEthereumChain multi-scenario harness ──────────────
+  // Real public L2/L1s. Each preset fills the four input fields; user
+  // can edit chainId / rpc / explorer to test edge cases (bad rpc,
+  // mismatched chainId, etc.) before clicking Submit.
+  const addChainPresets = {
+    'arbitrum': {
+      chainId:    '0xa4b1',
+      chainName:  'Arbitrum One',
+      rpcUrl:     'https://arb1.arbitrum.io/rpc',
+      explorer:   'https://arbiscan.io',
+    },
+    'polygon': {
+      chainId:    '0x89',
+      chainName:  'Polygon Mainnet',
+      rpcUrl:     'https://polygon-rpc.com',
+      explorer:   'https://polygonscan.com',
+    },
+    'base': {
+      chainId:    '0x2105',
+      chainName:  'Base',
+      rpcUrl:     'https://mainnet.base.org',
+      explorer:   'https://basescan.org',
+    },
+    'optimism': {
+      chainId:    '0xa',
+      chainName:  'OP Mainnet',
+      rpcUrl:     'https://mainnet.optimism.io',
+      explorer:   'https://optimistic.etherscan.io',
+    },
+  };
+
+  function applyAddChainPreset(key) {
+    const p = addChainPresets[key];
+    if (!p) return;
+    $('chain-cid').value = p.chainId;
+    $('chain-name').value = p.chainName;
+    $('chain-rpc').value = p.rpcUrl;
+    $('chain-explorer').value = p.explorer;
+    for (const btn of document.querySelectorAll('.addchain-preset')) {
+      btn.classList.toggle('is-active', btn.dataset.preset === key);
+    }
+  }
+
+  for (const btn of document.querySelectorAll('.addchain-preset')) {
+    btn.onclick = () => applyAddChainPreset(btn.dataset.preset);
+  }
+
+  // Default = Arbitrum so e2e tests can click `#add-chain-multi`
+  // straight away and get a known-good preset without first picking
+  // from the preset chip strip.
+  applyAddChainPreset('arbitrum');
+
+  $('add-chain-multi').onclick = async () => {
+    await call('wallet_addEthereumChain', [{
+      chainId:           $('chain-cid').value.trim(),
+      chainName:         $('chain-name').value.trim(),
+      nativeCurrency:    { name: 'Ether', symbol: 'ETH', decimals: 18 },
+      rpcUrls:           [$('chain-rpc').value.trim()],
+      blockExplorerUrls: [$('chain-explorer').value.trim()],
+    }]);
+  };
+
+  // EIP-7702 multi-scenario harness. Five presets covering the main
+  // paths the wallet's Sourcify gate has to handle:
+  //   permit2-sepolia   — verified on Sourcify, gate passes
+  //   permit2-mainnet   — same contract on mainnet, also verified
+  //   mintdelegate      — Aladdin's own delegate on mainnet, verified
+  //   unverified        — random address Sourcify doesn't index, gate BLOCKs
+  //   revoke            — zero address = EIP-7702 spec way to clear delegation
+  // Clicking a preset just fills the three inputs; the Sign button
+  // submits whatever's currently in them, so the user can also tweak
+  // a preset (try a different nonce, swap the chainId) before signing.
+  const auth7702Presets = {
+    'permit2-sepolia': {
+      address: '0x000000000022D473030F116dDEE9F6B43aC78BA3',
+      chainId: '0xaa36a7',
+      nonce:   '0x0',
+    },
+    'permit2-mainnet': {
+      address: '0x000000000022D473030F116dDEE9F6B43aC78BA3',
+      chainId: '0x1',
+      nonce:   '0x0',
+    },
+    'mintdelegate': {
+      address: '0x4206936776996fD5DFd13dB2D69b38a5FA23C848',
+      chainId: '0x1',
+      nonce:   '0x0',
+    },
+    'unverified': {
+      address: '0xdead00000000000000000000000000000000beef',
+      chainId: '0x1',
+      nonce:   '0x0',
+    },
+    'revoke': {
+      address: '0x0000000000000000000000000000000000000000',
+      chainId: '0x1',
+      nonce:   '0x0',
+    },
+  };
+
+  function applyAuth7702Preset(key) {
+    const p = auth7702Presets[key];
+    if (!p) return;
+    $('auth-address').value = p.address;
+    $('auth-chain-id').value = p.chainId;
+    $('auth-nonce').value = p.nonce;
+    // Re-render preset chip state — newest pick gets the active style.
+    for (const btn of document.querySelectorAll('.auth7702-preset')) {
+      btn.classList.toggle('is-active', btn.dataset.preset === key);
+    }
+  }
+
+  for (const btn of document.querySelectorAll('.auth7702-preset')) {
+    btn.onclick = () => applyAuth7702Preset(btn.dataset.preset);
+  }
+
+  // Default to Permit2/Sepolia so the existing e2e (which clicks
+  // #sign-authorization without touching inputs) keeps its
+  // expected params.
+  applyAuth7702Preset('permit2-sepolia');
+
+  $('sign-authorization').onclick = async () => {
+    const auth = await call('wallet_signAuthorization', [{
+      address: $('auth-address').value.trim(),
+      chainId: $('auth-chain-id').value.trim(),
+      nonce:   $('auth-nonce').value.trim(),
+    }]);
+    // Surface the concatenated r||s||v signature alongside the wire
+    // object. EIP-7702 returns the wire form (so #result shows fields),
+    // but the 65-byte personal-sign-shaped hex is handier to eyeball
+    // / paste into a verifier. v = 27 + yParity per pre-EIP-155 sig
+    // convention.
+    if (auth && typeof auth === 'object' && auth.r && auth.s) {
+      const r = auth.r.startsWith('0x') ? auth.r.slice(2) : auth.r;
+      const s = auth.s.startsWith('0x') ? auth.s.slice(2) : auth.s;
+      const yParity = Number(auth.yParity ?? 0);
+      const v = (27 + yParity).toString(16).padStart(2, '0');
+      set('signature', `0x${r}${s}${v}`);
+    }
+  };
+
+  // ERC-7715 scoped permission grant. Fires a single bounded
+  // wallet_grantPermissions request: one concrete target contract, a
+  // mint/activate allow-list, and a 1-year expiry computed at click
+  // time (so the grant is always live regardless of when the test
+  // runs). The wallet parses/normalizes this upfront and queues a
+  // pending request the popup renders as a CAN/CANNOT review.
+  $('grant-permissions').onclick = async () => {
+    const nowSec = Math.floor(Date.now() / 1000);
+    await call('wallet_grantPermissions', [{
+      chainId: '0xaa36a7', // sepolia — advisory; wallet's active chain wins
+      expiry: nowSec + 365 * 24 * 60 * 60,
+      permissions: [{
+        type: 'session',
+        data: {
+          target: '0xC0FFEE0000000000000000000000000000C0FFEE',
+          allowedFunctions: ['mint(uint256)', 'activate(uint256,uint8)'],
+        },
+      }],
+    }]);
+  };
+</script>
+</body>
+</html>
