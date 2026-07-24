@@ -122,7 +122,7 @@ spinning up a browser or an RPC. End-to-end flows are covered by a
 Playwright suite (`bun run test:e2e`) driving the built extension against a
 local fixture dapp. See `tests/` and `e2e/` for per-file coverage.
 
-## Install (dev)
+## Install (for devs who forked this repo)
 
 ```sh
 bun install
